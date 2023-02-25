@@ -1,0 +1,32 @@
+@import './_vars.scss';
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: $secondary-bgcolor;
+    color: $primary-color;
+}
+h1, h2, h3, h4, h5, h6 {
+    text-align: center;
+    padding-bottom: 15px;
+}
+.content {
+    width: 1200px;
+    height: 100vh;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: $primary-bgcolor;
+    border-left: 2px $border-color solid;
+    border-right: 2px $border-color solid;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.info {
+    text-align: end;
+    padding-right: 30px;
+}

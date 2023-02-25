@@ -1,0 +1,16 @@
+@import '../../App/vars';
+.button {
+    padding: 10px;
+    margin: 5px;
+    color: $form-color;
+    font-size: $font-size;
+    background: transparent;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.button:hover {
+    color: white;
+    background: deepskyblue;
+    border: 1px solid white;
+}

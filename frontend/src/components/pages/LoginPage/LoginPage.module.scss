@@ -1,0 +1,14 @@
+@import '../../App/vars';
+.login__form {
+    width: 400px;
+    background-color: $form-bgcolor;
+    color: $form-color;
+    align-self: center;
+    border: 1.3px $border-color solid;
+    border-radius: 12px;
+    margin-top: 10%;
+    padding: 20px;
+}
+.login__button {
+    text-align: center;
+}
