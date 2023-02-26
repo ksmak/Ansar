@@ -1,56 +1,15 @@
+# Python
+from typing import Any
+
 # Django
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.conf import settings
 
 # Project
-from .models import (
-    CustomUser,
-)
-
-
-class CustomGroupAdmin(admin.ModelAdmin):
-    """Custom group admin."""
-    list_display = (
-        'id',
-        'title'
-    )
-
-    list_display_links = (
-        'id',
-        'title'
-    )
-
-    readonly_fields = (
-        'id',
-    )
-
-    fieldsets = (
-        (None, {
-            'classes': (
-                'wide',
-            ),
-            'fields': (
-                'id',
-                'title'
-            ),
-        }),
-    )
-    
-    add_fieldsets = (
-        (None, {
-            'classes': (
-                'wide',
-            ),
-            'fields': (
-                'title',
-            ),
-        })
-    )
-
-    search_fields = ('title', )
-
-    ordering = ('title', )
+from .models import CustomUser
+from chat.models import Room
 
 
 class CustomUserAdmin(UserAdmin):
@@ -128,6 +87,23 @@ class CustomUserAdmin(UserAdmin):
 
     search_fields = ('username', )
     ordering = ('username', )
+
+    def save_model(
+        self,
+        request: Any,
+        obj: CustomUser,
+        form: Any,
+        change: Any
+    ) -> None:
+        super().save_model(request, obj, form, change)
+        if not change and obj.username != settings.PUBLIC_USER_NAME:
+            public_user, created = CustomUser.objects.public_user()
+            room = Room.objects.create(
+                title=obj.full_name
+            )
+            room.users.add(public_user)
+            room.users.add(obj)
+            room.save()
 
 
 admin.site.register(CustomUser, CustomUserAdmin)

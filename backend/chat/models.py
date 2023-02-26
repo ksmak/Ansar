@@ -24,7 +24,7 @@ class Room(models.Model):
         verbose_name='дата создания',
         auto_now_add=True
     )
-
+    
     class Meta:
         verbose_name = 'беседа'
         verbose_name_plural = 'беседы'

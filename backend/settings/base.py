@@ -2,6 +2,7 @@
 import sys
 import os
 from pathlib import Path
+import pygments.formatters
 
 # Third part
 from decouple import config
@@ -25,6 +26,8 @@ DJANGO_APPS = [
     'rest_framework',
     "corsheaders",
     'rest_framework_simplejwt',
+    'django_extensions',
+    'debug_toolbar',
 ]
 
 PROJECT_APPS = [
@@ -43,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = 'settings.urls'
@@ -99,9 +103,15 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'auths.CustomUser'
+
+PUBLIC_USER_NAME = config('PUBLIC_USER_NAME', cast=str)
+
+PUBLIC_USER_PASSWORD = config('PUBLIC_USER_PASSWORD', cast=str)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -142,3 +152,46 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Shell plus
+SHELL_PLUS = "ipython"
+SHELL_PLUS_PRINT_SQL = True
+SHELL_PLUS_PYGMENTS_FORMATTER = pygments.formatters.TerminalFormatter
+SHELL_PLUS_PYGMENTS_FORMATTER_KWARGS = {}
+SHELL_PLUS_PRE_IMPORTS = [
+    ('django.db', ('connection', 'connections', 'reset_queries')),
+    ('datetime', ('datetime', 'timedelta', 'date')),
+    ('json', ('loads', 'dumps'))
+]
+IPYTHON_KERNEL_DISPLAY_NAME = "Django Shell-Plus"
+SHELL_PLUS_MODEL_ALIASES = {
+    'auths': {
+        'CustomUser': 'U'
+    },
+    'chat': {
+        'Room': 'R ',
+        'Message': 'M',
+    }
+}
+
+# Debug toolbar
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+DEBUG_TOOLBAR_PANELS = [
+    'debug_toolbar.panels.history.HistoryPanel',
+    'debug_toolbar.panels.versions.VersionsPanel',
+    'debug_toolbar.panels.timer.TimerPanel',
+    'debug_toolbar.panels.settings.SettingsPanel',
+    'debug_toolbar.panels.headers.HeadersPanel',
+    'debug_toolbar.panels.request.RequestPanel',
+    'debug_toolbar.panels.sql.SQLPanel',
+    'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+    'debug_toolbar.panels.templates.TemplatesPanel',
+    'debug_toolbar.panels.cache.CachePanel',
+    'debug_toolbar.panels.signals.SignalsPanel',
+    'debug_toolbar.panels.logging.LoggingPanel',
+    'debug_toolbar.panels.redirects.RedirectsPanel',
+    'debug_toolbar.panels.profiling.ProfilingPanel'
+]
