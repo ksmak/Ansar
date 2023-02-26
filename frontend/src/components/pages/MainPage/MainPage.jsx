@@ -25,7 +25,7 @@ const MainPage = () => {
   const rooms = useSelector((state) => state.ansarClient.rooms)
   const [messageText, setMessageText] = useState("")
   const [messages, setMessages] = useState([])
-  const [socketUrl, setSocketUrl] = useState("ws://127.0.0.1:8000/ws/chat/");
+  const [socketUrl, setSocketUrl] = useState("ws://127.0.0.1:8000/rooms/");
 
   useEffect(() => {
     api.ansarClient.get_rooms()
@@ -36,8 +36,14 @@ const MainPage = () => {
         console.log('Error', error.message)
       })
   }, [dispatch])
+
+  useEffect(() => {
+    if (lastJsonMessage !== null) {
+      setMessages(prev => prev.concat(lastJsonMessage))
+    }
+  }, [messages, lastJsonMessage])
   
-  const { readyState, sendJsonMessage } = useWebSocket(
+  const { readyState, sendJsonMessage, lastJsonMessage } = useWebSocket(
     socketUrl, {
     queryParams: {
       token: sessionStorage.getItem('access_token')
@@ -70,7 +76,7 @@ const MainPage = () => {
   }[readyState];
 
   const onRoomClick = (id) => {
-    setSocketUrl("ws://127.0.0.1:8000/ws/chat/" + id + "/")
+    setSocketUrl("ws://127.0.0.1:8000/rooms/" + id + "/")
     api.ansarClient.get_messages()
       .then((resp) => {
         selectRoom(id)
