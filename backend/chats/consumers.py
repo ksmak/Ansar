@@ -8,6 +8,8 @@ from channels.generic.websocket import JsonWebsocketConsumer
 # Project
 from .models import Chat, Message
 from .serializers import MessageSerializer
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError
 
 
 User = get_user_model()
@@ -26,12 +28,12 @@ class ChatConsumer(JsonWebsocketConsumer):
         self.chat_group_name = "chat_%s" % self.chat_id
 
         self.user = self.scope["user"]
-        if not self.user and not self.user.is_authenticated:
-            return
+        if type(self.user) == AnonymousUser:
+            raise ValidationError('User not found.')
 
         self.chat = Chat.objects.filter(id=self.chat_id).first()
         if not self.chat:
-            return
+            raise ValidationError('Chat not found.')
 
         self.accept()
 
@@ -47,7 +49,7 @@ class ChatConsumer(JsonWebsocketConsumer):
     def receive_json(self, content, **kwargs):
         message = content["message"]
 
-        if message == "send_message":
+        if message == "send_text":
             message = Message.objects.create(
                 chat=self.chat,
                 from_user=self.user,
@@ -57,10 +59,10 @@ class ChatConsumer(JsonWebsocketConsumer):
             async_to_sync(self.channel_layer.group_send)(
                 self.chat_group_name,
                 {
-                    "type": "send_message",
+                    "type": "send_text",
                     "message": MessageSerializer(message).data,
                 },
             )
 
-    def send_message(self, event):
-        self.send_json(event['message'])
+    def send_text(self, event):
+        self.send_json(event)
