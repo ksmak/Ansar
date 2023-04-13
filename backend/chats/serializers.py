@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 # Project
-from .models import Message, Room
+from .models import Message, Chat
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -12,9 +12,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
         fields = (
             'id',
-            'room',
+            'chat',
             'status',
-            'user',
+            'from_user',
             'msg',
             'file',
             'create_date',
@@ -23,10 +23,10 @@ class MessageSerializer(serializers.ModelSerializer):
         )
 
 
-class RoomSerializer(serializers.ModelSerializer):
-    """Room serializer model."""
+class ChatSerializer(serializers.ModelSerializer):
+    """Chat serializer model."""
     class Meta:
-        model = Room
+        model = Chat
 
         fields = (
             'id',

@@ -1,34 +1,33 @@
 # Django
 from django.db import models
-
-# Project
-from auths.models import CustomUser
+from django.contrib.auth import get_user_model
 
 
-class Room(models.Model):
-    """Room model."""
+User = get_user_model()
+
+
+class Chat(models.Model):
+    """Chat model."""
     title = models.CharField(
         verbose_name='название',
         max_length=150,
         null=True,
         blank=True
     )
-
     users = models.ManyToManyField(
         verbose_name='пользователи',
-        to=CustomUser,
+        to=User,
         related_name='users'
     )
-
     create_date = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
     )
-    
+
     class Meta:
-        verbose_name = 'беседа'
-        verbose_name_plural = 'беседы'
-    
+        verbose_name = 'чат'
+        verbose_name_plural = 'чаты'
+
     def __str__(self) -> str:
         return self.title
 
@@ -52,45 +51,38 @@ class Message(models.Model):
         choices=STATUSES,
         default=STATUS_NOT_SEND
     )
-
-    room = models.ForeignKey(
-        verbose_name='беседа',
-        to=Room,
+    chat = models.ForeignKey(
+        verbose_name='чат',
+        to=Chat,
         on_delete=models.CASCADE,
-        related_name='room'
+        related_name='chat'
     )
-
-    user = models.ForeignKey(
-        verbose_name='пользователь',
-        to=CustomUser,
+    from_user = models.ForeignKey(
+        verbose_name='отправитель',
+        to=User,
         on_delete=models.CASCADE,
-        related_name='user'
+        related_name='from_user'
     )
-
     msg = models.TextField(
         verbose_name='текст сообщения',
         null=True,
         blank=True
     )
-
     file = models.FileField(
         verbose_name='вложенный файл',
         upload_to='uploads/',
         null=True,
         blank=True
     )
-
     create_date = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
     )
-
     send_date = models.DateTimeField(
         verbose_name='дата доставки',
         null=True,
         blank=True
     )
-
     read_date = models.DateTimeField(
         verbose_name='дата прочтения',
         null=True,
@@ -103,4 +95,4 @@ class Message(models.Model):
         ordering = ('-create_date', )
 
     def __str__(self) -> str:
-        return f"{self.user}/{self.room}({self.create_date}):{self.msg[:255]}"
+        return f"{self.from_user}/{self.chat}({self.create_date}"

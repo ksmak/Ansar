@@ -3,15 +3,15 @@ import sys
 import os
 from pathlib import Path
 import pygments.formatters
-
-# Third part
-from decouple import config
+import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', cast=str)
+sys.path.append(os.path.join(BASE_DIR, 'apps'))
 
-DEBUG = config('DEBUG', cast=bool)
+SECRET_KEY = config.SECRET_KEY
+
+DEBUG = config.DEBUG
 
 ALLOWED_HOSTS = ['*']
 
@@ -23,19 +23,21 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    "corsheaders",
-    'rest_framework_simplejwt',
     'django_extensions',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    "corsheaders",
     'debug_toolbar',
 ]
 
 PROJECT_APPS = [
-    'auths',
-    'chat',
+    'auths.apps.AuthsConfig',
+    'chats.apps.ChatsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS
+
+AUTH_USER_MODEL = 'auths.CustomUser'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -78,77 +80,43 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'}, # noqa
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'}, # noqa
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'}, # noqa
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'}, # noqa
 ]
 
-
 LANGUAGE_CODE = 'ru'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Almaty'
 USE_I18N = True
-
 USE_TZ = True
 
 STATIC_URL = '/static/'
-
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'auths.CustomUser'
-
-PUBLIC_USER_NAME = config('PUBLIC_USER_NAME', cast=str)
-
-PUBLIC_USER_PASSWORD = config('PUBLIC_USER_PASSWORD', cast=str)
-
+# Rest framework
 REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
 
+# Cors headers
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-]
-
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-]
-
+# Channel
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(config.REDIS_HOST, config.REDIS_PORT)],
         },
     },
 }
@@ -169,7 +137,7 @@ SHELL_PLUS_MODEL_ALIASES = {
         'CustomUser': 'U'
     },
     'chat': {
-        'Room': 'R ',
+        'Chat': 'C',
         'Message': 'M',
     }
 }

@@ -9,16 +9,12 @@ from rest_framework import routers
 from rest_framework_simplejwt import views as jwt_views
 
 # Project
-from chat.views import (
-    RoomViewSet
-)
-from auths.views import (
-    UsersViewSet,
-)
+from chats.views import ChatViewSet
+from auths.views import UsersViewSet
 
 
 router = routers.DefaultRouter()
-router.register(r'rooms', RoomViewSet, basename='rooms')
+router.register(r'chats', ChatViewSet, basename='rooms')
 router.register(r'users', UsersViewSet, basename='users')
 
 

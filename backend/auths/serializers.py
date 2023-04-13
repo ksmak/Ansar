@@ -7,8 +7,7 @@ from .models import CustomUser
 
 class CustomUserSerializer(serializers.ModelSerializer):
     """Custom user serializer."""
-
     class Meta:
         model = CustomUser
-
         fields = "__all__"
+        exclude = ('password', )
