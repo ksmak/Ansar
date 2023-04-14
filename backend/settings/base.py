@@ -3,15 +3,15 @@ import sys
 import os
 from pathlib import Path
 import pygments.formatters
-import config
+# import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 sys.path.append(os.path.join(BASE_DIR, 'apps'))
 
-SECRET_KEY = config.SECRET_KEY
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
-DEBUG = config.DEBUG
+DEBUG = os.environ.get("DEBUG")
 
 ALLOWED_HOSTS = ['*']
 
@@ -28,6 +28,7 @@ DJANGO_APPS = [
     'rest_framework_simplejwt',
     "corsheaders",
     'debug_toolbar',
+    'django_celery_results',
 ]
 
 PROJECT_APPS = [
@@ -74,8 +75,12 @@ ASGI_APPLICATION = "settings.asgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_NAME'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('POSTGRES_HOST'),
+        'PORT': os.environ.get('POSTGRES_PORT'),
     }
 }
 
@@ -116,7 +121,9 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(config.REDIS_HOST, config.REDIS_PORT)],
+            "hosts": [
+                (os.environ.get("REDIS_HOST"),
+                 os.environ.get("REDIS_PORT"))],
         },
     },
 }
@@ -163,3 +170,8 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.redirects.RedirectsPanel',
     'debug_toolbar.panels.profiling.ProfilingPanel'
 ]
+
+# Celery
+CELERY_BROKER_URL = os.environ.get("REDIS_URL") + "/0"
+CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL") + "/1"
+CELERY_CACHE_BACKEND = os.environ.get("REDIS_URL") + "/2"

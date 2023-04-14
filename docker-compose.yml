@@ -1,0 +1,57 @@
+version: '3.4'
+
+services:
+  db:
+    container_name: db
+    image: postgres
+    volumes:
+      - ./backend/postgres_db:/var/lib/postgresql/data
+    env_file:
+      - ./backend/.env.dev.db
+    ports:
+      - 5432:5432
+
+  backend:
+    container_name: backend
+    build: 
+      context: /backend
+      dockerfile: DockerFile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/:/app/
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env.dev
+    depends_on:
+      - db
+  
+  redis:
+    container_name: redis
+    image: redis:alpine
+  
+  celery-worker:
+    container_name: celery-worker
+    build: 
+      context: /backend
+      dockerfile: DockerFile
+    command: celery -A settings worker -l info
+    volumes:
+      - ./backend/:/app/
+    env_file:
+      - ./backend/.env.dev
+    depends_on:
+      - redis
+  
+  celery-beat:
+    container_name: celery-beat
+    build: 
+      context: /backend
+      dockerfile: DockerFile
+    command: celery -A settings beat -l info
+    volumes:
+      - ./backend/:/app/
+    env_file:
+      - ./backend/.env.dev
+    depends_on:
+      - redis
