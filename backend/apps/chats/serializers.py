@@ -12,14 +12,15 @@ class MessageSerializer(serializers.ModelSerializer):
 
         fields = (
             'id',
-            'chat',
             'status',
+            'chat',
             'from_user',
-            'msg',
+            'text',
             'file',
-            'create_date',
-            'send_date',
-            'read_date'
+            'creation_date',
+            'delivery_date',
+            'reading_date',
+            'deletion_date'
         )
 
 
@@ -31,5 +32,16 @@ class ChatSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
+            'admins',
+            'users',
+            'actives',
             'create_date'
         )
+
+
+class ChatCreateSerializer(serializers.Serializer):
+    """Serializer for create Chat."""
+    title = serializers.CharField()
+    users = serializers.ListField(
+        child=serializers.IntegerField()
+    )

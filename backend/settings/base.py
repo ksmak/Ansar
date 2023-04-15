@@ -3,7 +3,6 @@ import sys
 import os
 from pathlib import Path
 import pygments.formatters
-# import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -29,6 +28,8 @@ DJANGO_APPS = [
     "corsheaders",
     'debug_toolbar',
     'django_celery_results',
+    'django_celery_beat',
+    'channels',
 ]
 
 PROJECT_APPS = [
@@ -101,6 +102,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# datetime format
+DATETIME_FORMAT = "d.m.Y H:i:s"
+
 # Rest framework
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -121,9 +125,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [
-                (os.environ.get("REDIS_HOST"),
-                 os.environ.get("REDIS_PORT"))],
+            "hosts": os.environ.get("REDIS_URL") + "/3"
         },
     },
 }
@@ -174,4 +176,11 @@ DEBUG_TOOLBAR_PANELS = [
 # Celery
 CELERY_BROKER_URL = os.environ.get("REDIS_URL") + "/0"
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL") + "/1"
-CELERY_CACHE_BACKEND = os.environ.get("REDIS_URL") + "/2"
+CELERY_CACHE_BACKEND = 'default'
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': os.environ.get("REDIS_URL") + "/2",
+    }
+}
+CELERY_TIMEZONE = os.environ.get("TIME_ZONE")

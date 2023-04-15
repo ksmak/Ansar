@@ -1,3 +1,6 @@
+function DockerComposeUp { docker-compose build }
+Set-Alias dbd DockerComposeUp
+
 function DockerComposeUp { docker-compose up }
 Set-Alias dup DockerComposeUp
 
