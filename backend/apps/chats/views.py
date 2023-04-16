@@ -2,6 +2,7 @@
 from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 # Project
 from .models import Chat
@@ -17,7 +18,7 @@ class ChatViewSet(ViewSet):
     perimission_classes = [IsAuthenticated]
 
     def list(self, request):
-        queryset = Chat.objects.filter(users__in=self.request.user.id)
+        queryset = Chat.objects.filter(users__in=[self.request.user.id])
         serializer = ChatSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -26,6 +27,11 @@ class ChatViewSet(ViewSet):
             data=request.data
         )
 
+        if not serializer.is_valid():
+            Response({
+                'errors': serializer.errors
+            }, HTTP_400_BAD_REQUEST)
+
         data = serializer.data
 
         chat = Chat.objects.create(title=data['title'])
@@ -33,4 +39,4 @@ class ChatViewSet(ViewSet):
         chat.users.set(data['users'])
         chat.save()
 
-        return Response(data)
+        return Response(ChatSerializer(chat).data, HTTP_200_OK)

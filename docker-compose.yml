@@ -1,14 +1,14 @@
 version: '3.4'
 
 volumes:
-  postgres_db:
+  pg_data:
   
 services:
   db:
     container_name: db
     image: postgres
     volumes:
-      - postgres_db:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     env_file:
       - ./backend/.env.dev.db
     ports:
@@ -24,7 +24,8 @@ services:
     volumes:
       - ./backend/:/app/
     ports:
-      - "8000:8000"
+      - 8000:8000
+      - 5678:5678
     env_file:
       - ./backend/.env.dev
     depends_on:

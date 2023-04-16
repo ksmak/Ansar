@@ -29,7 +29,7 @@ class Chat(models.Model):
         to=User,
         related_name='actives'
     )
-    create_date = models.DateTimeField(
+    creation_date = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
     )
@@ -44,25 +44,6 @@ class Chat(models.Model):
 
 class Message(models.Model):
     """Message model."""
-    STATUS_CREATE = 0
-    STATUS_SENT = 1
-    STATUS_DELIVERED = 2
-    STATUS_READ = 3
-    STATUS_DELETED = 4
-
-    STATUSES = (
-        (STATUS_CREATE, 'создан'),
-        (STATUS_SENT, 'отправлен'),
-        (STATUS_DELIVERED, 'доставлен'),
-        (STATUS_READ, 'прочитан'),
-        (STATUS_DELETED, 'удален'),
-    )
-
-    status = models.PositiveSmallIntegerField(
-        verbose_name='статус',
-        choices=STATUSES,
-        default=STATUS_CREATE
-    )
     chat = models.ForeignKey(
         verbose_name='чат',
         to=Chat,
@@ -89,21 +70,6 @@ class Message(models.Model):
     creation_date = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
-    )
-    delivery_date = models.DateTimeField(
-        verbose_name='дата доставки',
-        null=True,
-        blank=True
-    )
-    reading_date = models.DateTimeField(
-        verbose_name='дата прочтения',
-        null=True,
-        blank=True
-    )
-    deletion_date = models.DateTimeField(
-        verbose_name='дата удаления',
-        null=True,
-        blank=True
     )
 
     class Meta:

@@ -18,9 +18,6 @@ class MessageSerializer(serializers.ModelSerializer):
             'text',
             'file',
             'creation_date',
-            'delivery_date',
-            'reading_date',
-            'deletion_date'
         )
 
 
@@ -35,7 +32,7 @@ class ChatSerializer(serializers.ModelSerializer):
             'admins',
             'users',
             'actives',
-            'create_date'
+            'creation_date'
         )
 
 

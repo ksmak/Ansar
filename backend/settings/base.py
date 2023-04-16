@@ -125,7 +125,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": os.environ.get("REDIS_URL") + "/3"
+            "hosts": [os.environ.get("REDIS_URL") + "/3"]
         },
     },
 }
@@ -145,7 +145,7 @@ SHELL_PLUS_MODEL_ALIASES = {
     'auths': {
         'CustomUser': 'U'
     },
-    'chat': {
+    'chats': {
         'Chat': 'C',
         'Message': 'M',
     }

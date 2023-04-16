@@ -6,10 +6,14 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer
 
 # Project
-from .models import Chat, Message
-from .serializers import MessageSerializer
+from .models import Chat
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
+from .tasks import (
+    join_chat,
+    quit_chat,
+    send_message,
+)
 
 
 User = get_user_model()
@@ -21,6 +25,7 @@ class ChatConsumer(JsonWebsocketConsumer):
         super().__init__(args, kwargs)
         self.user = None
         self.chat_id = None
+        self.chat = None
         self.chat_group_name = None
 
     def connect(self):
@@ -49,20 +54,43 @@ class ChatConsumer(JsonWebsocketConsumer):
     def receive_json(self, content, **kwargs):
         message = content["message"]
 
-        if message == "send_text":
-            message = Message.objects.create(
-                chat=self.chat,
-                from_user=self.user,
-                msg=content['msg']
+        if message == 'join_chat':
+            join_chat.delay(
+               self.chat_group_name,
+               self.chat.id,
+               self.user.id
             )
-
-            async_to_sync(self.channel_layer.group_send)(
-                self.chat_group_name,
-                {
-                    "type": "send_text",
-                    "message": MessageSerializer(message).data,
-                },
+        elif message == "quit_chat":
+            quit_chat.delay(
+               self.chat_group_name,
+               self.chat.id,
+               self.user.id
             )
+        elif message == "send_message":
+            send_message.delay(
+               self.chat_group_name,
+               self.chat.id,
+               self.user.id,
+               content['text'],
+               content['file_path']
+            )
+        # if message == "send_text":
+        #     message = Message.objects.create(
+        #         chat=self.chat,
+        #         from_user=self.user,
+        #         msg=content['msg']
+        #     )
 
-    def send_text(self, event):
+        #     async_to_sync(self.channel_layer.group_send)(
+        #         self.chat_group_name,
+        #         {
+        #             "type": "send_text",
+        #             "message": MessageSerializer(message).data,
+        #         },
+        #     )
+
+    def update_chat(self, event):
+        self.send_json(event)
+
+    def update_message(self, event):
         self.send_json(event)
