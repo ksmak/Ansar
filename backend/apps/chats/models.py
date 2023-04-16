@@ -27,7 +27,7 @@ class Chat(models.Model):
     actives = models.ManyToManyField(
         verbose_name='активные пользователи',
         to=User,
-        related_name='users'
+        related_name='actives'
     )
     create_date = models.DateTimeField(
         verbose_name='дата создания',

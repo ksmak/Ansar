@@ -1,11 +1,6 @@
-# Django
-from django.contrib.auth import get_user_model
-
 # DRF
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 # Project
@@ -16,34 +11,20 @@ from .serializers import (
 )
 
 
-User = get_user_model()
-
-
-class ChatViewSet(ReadOnlyModelViewSet):
+class ChatViewSet(ViewSet):
     """ChatViewSet."""
-    serializer_class = ChatSerializer
+
     perimission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Chat.objects.filter(users__in=self.request.user.id)
+    def list(self, request):
+        queryset = Chat.objects.filter(users__in=self.request.user.id)
+        serializer = ChatSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-    @action(
-        methods=('POST',),
-        detail=False,
-    )
-    def create(
-        self,
-        request: Request
-    ) -> Response:
-
+    def create(self, request):
         serializer = ChatCreateSerializer(
             data=request.data
         )
-
-        if not serializer.is_valid():
-            Response({
-                'result': 'Error read data.'
-            }, 401)
 
         data = serializer.data
 
@@ -52,7 +33,4 @@ class ChatViewSet(ReadOnlyModelViewSet):
         chat.users.set(data['users'])
         chat.save()
 
-        return Response({
-            'result': 'Success',
-            'chat': ChatSerializer(chat)
-        }, 200)
+        return Response(data)

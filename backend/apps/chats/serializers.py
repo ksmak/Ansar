@@ -41,7 +41,8 @@ class ChatSerializer(serializers.ModelSerializer):
 
 class ChatCreateSerializer(serializers.Serializer):
     """Serializer for create Chat."""
-    title = serializers.CharField()
+    id = serializers.ReadOnlyField()
+    title = serializers.CharField(required=False)
     users = serializers.ListField(
         child=serializers.IntegerField()
     )

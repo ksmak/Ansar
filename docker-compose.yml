@@ -1,11 +1,14 @@
 version: '3.4'
 
+volumes:
+  postgres_db:
+  
 services:
   db:
     container_name: db
     image: postgres
     volumes:
-      - ./backend/postgres_db:/var/lib/postgresql/data
+      - postgres_db:/var/lib/postgresql/data
     env_file:
       - ./backend/.env.dev.db
     ports:
@@ -13,8 +16,9 @@ services:
 
   backend:
     container_name: backend
+    restart: unless-stopped
     build: 
-      context: /backend
+      context: ./backend
       dockerfile: DockerFile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -35,9 +39,11 @@ services:
   celery-worker:
     container_name: celery-worker
     build: 
-      context: /backend
+      context: ./backend
       dockerfile: DockerFile
     command: celery -A settings worker -l info
+    volumes:
+      - ./backend/:/app/
     env_file:
       - ./backend/.env.dev
     depends_on:
@@ -46,9 +52,11 @@ services:
   celery-beat:
     container_name: celery-beat
     build: 
-      context: /backend
+      context: ./backend
       dockerfile: DockerFile
     command: celery -A settings beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./backend/:/app/
     env_file:
       - ./backend/.env.dev
     depends_on:
