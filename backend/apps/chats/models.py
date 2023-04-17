@@ -79,3 +79,36 @@ class Message(models.Model):
 
     def __str__(self) -> str:
         return f"Message from {self.from_user} {self.creation_date}: {self.text}" # noqa
+
+
+class Journal(models.Model):
+    """Message Journal."""
+    MESSAGE_CREATED = 1
+    MESSAGE_READ = 2
+    MESSAGE_DELETED = 3
+    ACTION_LIST = (
+        (MESSAGE_CREATED, 'сообщение создано'),
+        (MESSAGE_READ, 'сообщение прочтено'),
+        (MESSAGE_DELETED, 'сообщение удалено'),
+    )
+    action = models.PositiveSmallIntegerField(
+        verbose_name="действие",
+        choices=ACTION_LIST
+    )
+    user_id = models.PositiveIntegerField(
+        verbose_name="ID пользователя"
+    )
+    message_id = models.PositiveIntegerField(
+        verbose_name="ID сообщения"
+    )
+    action_date = models.DateTimeField(
+        verbose_name="дата выполненного действия"
+    )
+
+    class Meta:
+        verbose_name = 'журнал'
+        verbose_name_plural = 'журнал'
+        ordering = ('-action_date', )
+
+    def __str__(self) -> str:
+        return f"action:{self.action}, user ID:{self.user_id}, message ID:{self.message_id}, date:{self.action_date}" # noqa

@@ -2,17 +2,28 @@
 from rest_framework import serializers
 
 # Project
-from .models import Message, Chat
+from .models import Message, Chat, Journal
+
+
+class JournalSerializer(serializers.ModelSerializer):
+    """Journal serializer model."""
+    class Meta:
+        model = Journal
+        fields = (
+            'id',
+            'action',
+            'user_id',
+            'message_id',
+            'action_date'
+        )
 
 
 class MessageSerializer(serializers.ModelSerializer):
     """Message serializer model."""
     class Meta:
         model = Message
-
         fields = (
             'id',
-            'status',
             'chat',
             'from_user',
             'text',

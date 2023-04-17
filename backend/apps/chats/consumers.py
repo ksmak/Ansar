@@ -13,6 +13,8 @@ from .tasks import (
     join_chat,
     quit_chat,
     send_message,
+    read_message,
+    delete_message,
 )
 
 
@@ -74,23 +76,20 @@ class ChatConsumer(JsonWebsocketConsumer):
                content['text'],
                content['file_path']
             )
-        # if message == "send_text":
-        #     message = Message.objects.create(
-        #         chat=self.chat,
-        #         from_user=self.user,
-        #         msg=content['msg']
-        #     )
+        elif message == "read_message":
+            read_message.delay(
+               self.chat_group_name,
+               self.chat.id,
+               self.user.id,
+               content['message_id']
+            )
+        elif message == "delete_message":
+            delete_message.delay(
+               self.chat_group_name,
+               self.chat.id,
+               self.user.id,
+               content['message_id']
+            )
 
-        #     async_to_sync(self.channel_layer.group_send)(
-        #         self.chat_group_name,
-        #         {
-        #             "type": "send_text",
-        #             "message": MessageSerializer(message).data,
-        #         },
-        #     )
-
-    def update_chat(self, event):
-        self.send_json(event)
-
-    def update_message(self, event):
+    def send_group(self, event):
         self.send_json(event)
