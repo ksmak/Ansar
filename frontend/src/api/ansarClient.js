@@ -7,12 +7,9 @@ const ansarClientModule = (instance) => {
                 data: params,
               })
         },
-        get_rooms(params) {
-            return instance.get('api/rooms/', params)
-        },
-        get_messages(params) {
-            return instance.get('api/messages/', params)
-        },
+        get_chats() {
+            return instance.get('api/chats/')
+        }
     }
 }
 

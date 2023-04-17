@@ -1,21 +1,27 @@
-// React, Router
-import React from 'react'
-import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import "./main.scss"
 
-// Components
-import MainPage from "../pages/MainPage/MainPage"
-import LoginPage from "../pages/LoginPage/LoginPage"
+import LoginPage from "../pages/LoginPage/LoginPage";
+import MainPage from "../pages/MainPage/MainPage";
 
+import { AuthProvider } from "../../hok/AuthProvider";
+import { ProtectedRouter } from "../../hok/ProtectedRouter";
 
-const App = () => {
+function App () {
   return (
-    <BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
       <Routes>
-        <Route path='/' element={<MainPage />} />
+        <Route path='/' element={
+          <ProtectedRouter>
+            <MainPage />
+          </ProtectedRouter>
+        } />
         <Route path='/login' element={<LoginPage />} />
       </Routes>
-    </BrowserRouter>
-  )
-}
+      </BrowserRouter>
+    </AuthProvider>
+  );
+};
 
-export default App
+export default App;
