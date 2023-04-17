@@ -7,11 +7,11 @@ from channels.generic.websocket import JsonWebsocketConsumer
 
 # Project
 from .models import Chat
-from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
 from .tasks import (
-    join_chat,
-    quit_chat,
+    create_chat,
+    update_chat,
+    delete_chat,
     send_message,
     read_message,
     delete_message,
@@ -22,6 +22,70 @@ User = get_user_model()
 
 
 class ChatConsumer(JsonWebsocketConsumer):
+    """Consumer for chat."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+        self.user = None
+        self.group_name = 'chat'
+
+    def connect(self):
+        self.user = self.scope["user"]
+        if type(self.user) != User:
+            raise ValidationError("User not found.")
+
+        self.accept()
+
+        async_to_sync(self.channel_layer.group_add)(
+            self.group_name, self.channel_name
+        )
+
+    def disconnect(self, close_code):
+        async_to_sync(self.channel_layer.group_discard)(
+            self.group_name, self.channel_name
+        )
+
+    def receive_json(self, content, **kwargs):
+        message = content["message"]
+
+        if message == 'create_chat':
+            create_chat.delay(
+                group_name=self.group_name,
+                user_id=self.user.id,
+                title=content['title'],
+                is_group=content['is_group'],
+                admins=content['admins'],
+                users=content['users']
+            )
+        elif message == 'join_chat':
+            update_chat.delay(
+               self.group_name,
+               self.user.id,
+               True
+            )
+        elif message == "quit_chat":
+            update_chat.delay(
+               self.group_name,
+               self.user.id,
+               False
+            )
+        elif message == "delete_chat":
+            delete_chat.delay(
+                self.group_name,
+                self.user.id,
+                content["chat_id"]
+            )
+
+    def new_chat(self, event):
+        self.send_json(event)
+
+    def change_chat(self, event):
+        self.send_json(event)
+
+    def remove_chat(self, event):
+        self.send_json(event)
+
+
+class MessageConsumer(JsonWebsocketConsumer):
     """Consumer for chat."""
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
@@ -35,7 +99,7 @@ class ChatConsumer(JsonWebsocketConsumer):
         self.chat_group_name = "chat_%s" % self.chat_id
 
         self.user = self.scope["user"]
-        if type(self.user) == AnonymousUser:
+        if type(self.user) != User:
             raise ValidationError('User not found.')
 
         self.chat = Chat.objects.filter(id=self.chat_id).first()
@@ -56,19 +120,7 @@ class ChatConsumer(JsonWebsocketConsumer):
     def receive_json(self, content, **kwargs):
         message = content["message"]
 
-        if message == 'join_chat':
-            join_chat.delay(
-               self.chat_group_name,
-               self.chat.id,
-               self.user.id
-            )
-        elif message == "quit_chat":
-            quit_chat.delay(
-               self.chat_group_name,
-               self.chat.id,
-               self.user.id
-            )
-        elif message == "send_message":
+        if message == "send_message":
             send_message.delay(
                self.chat_group_name,
                self.chat.id,
@@ -79,17 +131,21 @@ class ChatConsumer(JsonWebsocketConsumer):
         elif message == "read_message":
             read_message.delay(
                self.chat_group_name,
-               self.chat.id,
                self.user.id,
                content['message_id']
             )
         elif message == "delete_message":
             delete_message.delay(
                self.chat_group_name,
-               self.chat.id,
                self.user.id,
                content['message_id']
             )
 
-    def send_group(self, event):
+    def new_message(self, event):
+        self.send_json(event)
+
+    def change_message(self, event):
+        self.send_json(event)
+
+    def remove_message(self, event):
         self.send_json(event)

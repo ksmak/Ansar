@@ -2,24 +2,25 @@
 from rest_framework import serializers
 
 # Project
-from .models import Message, Chat, Journal
+from .models import Message, Chat, Reader
 
 
-class JournalSerializer(serializers.ModelSerializer):
-    """Journal serializer model."""
+class ReaderSerializer(serializers.ModelSerializer):
+    """Reader serializer model."""
     class Meta:
-        model = Journal
+        model = Reader
         fields = (
             'id',
-            'action',
-            'user_id',
-            'message_id',
-            'action_date'
+            'message',
+            'user',
+            'read_date'
         )
 
 
 class MessageSerializer(serializers.ModelSerializer):
     """Message serializer model."""
+    readers = ReaderSerializer(many=True)
+
     class Meta:
         model = Message
         fields = (
@@ -29,6 +30,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'text',
             'file',
             'creation_date',
+            'readers'
         )
 
 

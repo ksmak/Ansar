@@ -14,6 +14,10 @@ class Chat(models.Model):
         null=True,
         blank=True
     )
+    is_group = models.BooleanField(
+        verbose_name="являестя ли групповым чатом",
+        default=False
+    )
     admins = models.ManyToManyField(
         verbose_name='администраторы',
         to=User,
@@ -78,37 +82,33 @@ class Message(models.Model):
         ordering = ('-creation_date', )
 
     def __str__(self) -> str:
-        return f"Message from {self.from_user} {self.creation_date}: {self.text}" # noqa
+        return f"Message[{self.from_user} {self.creation_date}]: {self.text}" # noqa
 
 
-class Journal(models.Model):
-    """Message Journal."""
-    MESSAGE_CREATED = 1
-    MESSAGE_READ = 2
-    MESSAGE_DELETED = 3
-    ACTION_LIST = (
-        (MESSAGE_CREATED, 'сообщение создано'),
-        (MESSAGE_READ, 'сообщение прочтено'),
-        (MESSAGE_DELETED, 'сообщение удалено'),
+class Reader(models.Model):
+    """Message readers."""
+    message = models.ForeignKey(
+        verbose_name="сообщение",
+        to=Message,
+        on_delete=models.CASCADE,
+        related_name="readers"
     )
-    action = models.PositiveSmallIntegerField(
-        verbose_name="действие",
-        choices=ACTION_LIST
+    user = models.ForeignKey(
+        verbose_name="пользователь",
+        to=User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
-    user_id = models.PositiveIntegerField(
-        verbose_name="ID пользователя"
-    )
-    message_id = models.PositiveIntegerField(
-        verbose_name="ID сообщения"
-    )
-    action_date = models.DateTimeField(
-        verbose_name="дата выполненного действия"
+    read_date = models.DateTimeField(
+        verbose_name="дата прочтения сообщения",
+        auto_now_add=True
     )
 
     class Meta:
-        verbose_name = 'журнал'
-        verbose_name_plural = 'журнал'
-        ordering = ('-action_date', )
+        verbose_name = 'читатель'
+        verbose_name_plural = 'читатели'
+        ordering = ('-read_date', )
 
     def __str__(self) -> str:
-        return f"action:{self.action}, user ID:{self.user_id}, message ID:{self.message_id}, date:{self.action_date}" # noqa
+        return f"User:{self.user.username}, message:{self.message}, read date:{self.read_date}" # noqa
