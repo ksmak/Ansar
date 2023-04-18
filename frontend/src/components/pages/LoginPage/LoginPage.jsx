@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom"
 
 // Project
 import api from '../../../api/index';
-import { useAuth } from '../../../hooks/useAuth';
 
 // Components
 import Button from '../../UI/Button/Button';
@@ -18,25 +17,26 @@ import cls from './LoginPage.module.scss';
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation(); 
-    const {onLogin} = useAuth();
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const fromPage = location.state?.from?.pathname || '/';
+    let fromPage = location.state?.from?.pathname || '/';
+
+    if (fromPage == '/login') {
+        fromPage = '/';
+    }
 
     const onSignIn = (e) => {
         e.preventDefault();
         
         api.ansarClient.login({'username': username, 'password': password})
             .then((resp) => {
-                console.log(resp);
-                onLogin(
-                    resp.data.access,
-                    resp.data.refresh,
-                    () => navigate(fromPage, {replace: true})
-                )
+                localStorage.setItem('access', resp.data.access);
+                localStorage.setItem('refresh', resp.data.refresh);
+                localStorage.setItem('user', {id: resp.data.id, full_name: resp.data.full_name});
+                navigate(fromPage, {replace: true});
             })
             .catch(() => {
                 setError('Ошибка! Имя пользователя или пароль не верны.');

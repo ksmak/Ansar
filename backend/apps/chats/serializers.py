@@ -36,6 +36,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ChatSerializer(serializers.ModelSerializer):
     """Chat serializer model."""
+    messages = MessageSerializer(many=True)
+    
     class Meta:
         model = Chat
 
@@ -45,7 +47,8 @@ class ChatSerializer(serializers.ModelSerializer):
             'admins',
             'users',
             'actives',
-            'creation_date'
+            'creation_date',
+            'messages'
         )
 
 

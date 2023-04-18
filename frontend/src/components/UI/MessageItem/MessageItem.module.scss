@@ -1,4 +1,6 @@
+@import '../../App/vars';
 .message__item {
+    width: 80%;
     padding: 5px;
     margin: 10px;
     font-size: 12pt;
@@ -6,4 +8,10 @@
     border: 1px solid rgb(21, 94, 161);
     border-radius: 12px;
     background-color: white;
+}
+.message_owner {
+    background-color: $message-owner-color;
+}
+.message_other {
+    background-color: $message-other-color;
 }

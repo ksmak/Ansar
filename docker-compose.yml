@@ -31,6 +31,21 @@ services:
     depends_on:
       - db
   
+  frontend:
+    container_name: frontend
+    restart: unless-stopped
+    build: 
+      context: ./frontend
+      dockerfile: DockerFile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - 3000:3000
+    environment:
+      - SERVER_HOST='http://127.0.0.1:8000'
+      - CHOKIDAR_USEPOLLING='true'
+
   redis:
     container_name: redis
     image: redis:alpine

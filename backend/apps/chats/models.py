@@ -52,13 +52,13 @@ class Message(models.Model):
         verbose_name='чат',
         to=Chat,
         on_delete=models.CASCADE,
-        related_name='chat'
+        related_name='messages'
     )
     from_user = models.ForeignKey(
         verbose_name='отправитель',
         to=User,
         on_delete=models.CASCADE,
-        related_name='from_user'
+        related_name='messages'
     )
     text = models.TextField(
         verbose_name='текст сообщения',

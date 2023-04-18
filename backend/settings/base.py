@@ -3,6 +3,7 @@ import sys
 import os
 from pathlib import Path
 import pygments.formatters
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -115,9 +116,15 @@ REST_FRAMEWORK = {
     )
 }
 
+# Simple JWT
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
 # Cors headers
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000"
+    "http://127.0.0.1:3000"
 ]
 
 # Channel

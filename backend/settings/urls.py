@@ -10,7 +10,10 @@ from rest_framework_simplejwt import views as jwt_views
 
 # Project
 from chats.views import ChatViewSet
-from auths.views import UsersViewSet
+from auths.views import (
+    MyTokenObtainPairView,
+    UsersViewSet
+)
 
 
 router = routers.DefaultRouter()
@@ -20,7 +23,7 @@ router.register(r'users', UsersViewSet, basename='users')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/token/', jwt_views.TokenObtainPairView.as_view()),
+    path('api/token/', MyTokenObtainPairView.as_view()),
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view()),
     path('api/', include(router.urls)),
 ]
