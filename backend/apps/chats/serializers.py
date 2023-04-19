@@ -25,6 +25,7 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = (
             'id',
+            'user',
             'chat',
             'from_user',
             'text',
@@ -36,7 +37,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ChatSerializer(serializers.ModelSerializer):
     """Chat serializer model."""
-    messages = MessageSerializer(many=True)
+    messages = MessageSerializer(source='chat_messages', many=True)
     
     class Meta:
         model = Chat

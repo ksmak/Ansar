@@ -35,7 +35,8 @@ const LoginPage = () => {
             .then((resp) => {
                 localStorage.setItem('access', resp.data.access);
                 localStorage.setItem('refresh', resp.data.refresh);
-                localStorage.setItem('user', {id: resp.data.id, full_name: resp.data.full_name});
+                localStorage.setItem('user', resp.data.id);
+                localStorage.setItem('full_name', resp.data.full_name);
                 navigate(fromPage, {replace: true});
             })
             .catch(() => {

@@ -11,7 +11,9 @@
 }
 .message_owner {
     background-color: $message-owner-color;
+    align-self: flex-end;
 }
 .message_other {
     background-color: $message-other-color;
+    align-self: flex-start;
 }

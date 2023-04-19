@@ -9,7 +9,10 @@ from rest_framework import routers
 from rest_framework_simplejwt import views as jwt_views
 
 # Project
-from chats.views import ChatViewSet
+from chats.views import (
+    ChatViewSet,
+    FileUploadView,
+)
 from auths.views import (
     MyTokenObtainPairView,
     UsersViewSet
@@ -26,13 +29,15 @@ urlpatterns = [
     path('api/token/', MyTokenObtainPairView.as_view()),
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view()),
     path('api/', include(router.urls)),
+    path('api/uploadfile/', FileUploadView.as_view())
 ]
 
 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-
 if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
     urlpatterns += [
         path('__debug__/', include('debug_toolbar.urls')),
     ]

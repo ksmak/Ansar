@@ -1,7 +1,4 @@
-@import '../../App/vars';
-.message_owner {
-    background-color: $message-owner-color;
-}
-.message_other {
-    background-color: $message-other-color;
+.message__list {
+    display: flex;
+    flex-direction: column;
 }

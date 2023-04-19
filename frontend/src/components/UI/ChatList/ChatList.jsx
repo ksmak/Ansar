@@ -12,15 +12,15 @@ const ChatList = ({ items, onItemClick, is_visible, selectItem }) => {
         is_visible ?
         <div className={cls.chat__list}>
             {items.length
-                ? items.map((item) => {
+                ? items.map((el) => {
                     return (
                         <ChatItem 
-                            key={item.id}
-                            onClick={() => onItemClick(item)}
-                            item={item}
+                            key={el.item.id}
+                            onClick={() => onItemClick(el)}
+                            item={el.item}
                             selectItem={selectItem}
                         >
-                            {item.title || item.full_name}
+                            {el.item.title || el.item.full_name}
                         </ChatItem>
                     )
                 })

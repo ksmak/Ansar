@@ -1,6 +1,7 @@
 from celery import shared_task
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 
@@ -99,20 +100,28 @@ def delete_chat(
 
 @shared_task
 def send_message(
-    chat_group_name: str,
-    chat_id: int,
-    user_id: int,
+    group_name: str,
+    _type: str,
+    group_id: int,
+    from_user_id: int,
     text: str,
     file_path: str
-):
-    chat = Chat.objects.get(id=chat_id)
+) -> None:  
+    user = None
+    chat = None
+    if _type == "user":
+        user = get_user_model().objects.get(id=group_id)
+    else:    
+        chat = Chat.objects.get(id=group_id)
 
-    user = get_user_model().objects.get(id=user_id)
+    from_user = get_user_model().objects.get(id=from_user_id)
 
     message = Message.objects.create(
+        user=user,
         chat=chat,
-        from_user=user,
-        text=text
+        from_user=from_user,
+        text=text,
+        file=file_path
     )
 
     message_serializer = MessageSerializer(message)
@@ -120,9 +129,10 @@ def send_message(
     channel_layer = get_channel_layer()
 
     async_to_sync(channel_layer.group_send)(
-        chat_group_name,
+        group_name,
         {
             "type": "new_message",
+            "message_type": _type,
             "message": message_serializer.data,
         }
     )
@@ -130,17 +140,18 @@ def send_message(
 
 @shared_task
 def read_message(
-    chat_group_name: str,
+    group_name: str,
+    _type: str,
     user_id: int,
     message_id: int
-):
-    user = get_user_model().objects.get(id=user_id)
+) -> None:
+    from_user = get_user_model().objects.get(id=user_id)
 
     message = Message.objects.get(id=message_id)
 
     Reader.objects.create(
         message=message,
-        user=user
+        user=from_user
     )
 
     serializer = MessageSerializer(message)
@@ -148,9 +159,10 @@ def read_message(
     channel_layer = get_channel_layer()
 
     async_to_sync(channel_layer.group_send)(
-        chat_group_name,
+        group_name,
         {
             "type": "change_message",
+            "message_type": _type,
             "message": serializer.data
         }
     )
@@ -158,21 +170,23 @@ def read_message(
 
 @shared_task
 def delete_message(
-    chat_group_name: str,
+    group_name: str,
+    _type: str,
     user_id: int,
     message_id: int
 ):
-    user = get_user_model().objects.get(id=user_id)
+    from_user = get_user_model().objects.get(id=user_id)
 
-    message = Message.objects.get(id=message_id, from_user=user)
+    message = Message.objects.get(id=message_id, from_user=from_user)
     message.delete()
 
     channel_layer = get_channel_layer()
 
     async_to_sync(channel_layer.group_send)(
-        chat_group_name,
+        group_name,
         {
             "type": "remove_message",
+            "message_type": _type,
             "message_id": message_id,
             "user_id": user_id,
             "delete_date": timezone.now(),

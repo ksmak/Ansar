@@ -5,6 +5,9 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+# Project
+from chats.serializers import MessageSerializer
+
 
 User = get_user_model()
 
@@ -23,8 +26,14 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomUserSerializer(serializers.ModelSerializer):
     """Custom user serializer."""
+    messages = MessageSerializer(source="user_messages", many=True)
+
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'full_name', 'is_active'
+            'id',
+            'username',
+            'full_name',
+            'is_active',
+            'messages'
         )

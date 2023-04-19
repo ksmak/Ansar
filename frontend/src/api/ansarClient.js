@@ -12,6 +12,13 @@ const ansarClientModule = (instance) => {
         },
         get_chats() {
             return instance.get('api/chats/')
+        },
+        upload_file(formData) {
+            return instance.post('api/uploadfile/', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
         }
     }
 }

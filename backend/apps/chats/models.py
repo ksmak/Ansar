@@ -1,6 +1,7 @@
 # Django
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 
 User = get_user_model()
@@ -13,10 +14,6 @@ class Chat(models.Model):
         max_length=150,
         null=True,
         blank=True
-    )
-    is_group = models.BooleanField(
-        verbose_name="являестя ли групповым чатом",
-        default=False
     )
     admins = models.ManyToManyField(
         verbose_name='администраторы',
@@ -48,26 +45,33 @@ class Chat(models.Model):
 
 class Message(models.Model):
     """Message model."""
+    user = models.ForeignKey(
+        verbose_name='пользователь',
+        to=User,
+        on_delete=models.CASCADE,
+        related_name='user_messages',
+        null=True,
+        blank=True
+    )
     chat = models.ForeignKey(
         verbose_name='чат',
         to=Chat,
         on_delete=models.CASCADE,
-        related_name='messages'
+        related_name='chat_messages',
+        null=True,
+        blank=True
     )
     from_user = models.ForeignKey(
         verbose_name='отправитель',
         to=User,
         on_delete=models.CASCADE,
-        related_name='messages'
     )
     text = models.TextField(
         verbose_name='текст сообщения',
-        null=True,
-        blank=True
     )
-    file = models.FileField(
+    file = models.FilePathField(
         verbose_name='вложенный файл',
-        upload_to='uploads/',
+        path=settings.MEDIA_ROOT,
         null=True,
         blank=True
     )
@@ -96,7 +100,7 @@ class Reader(models.Model):
     user = models.ForeignKey(
         verbose_name="пользователь",
         to=User,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True
     )

@@ -10,7 +10,7 @@ const MessageItem = ({children, item, user_id, ...props}) => {
             className={[
                 cls.message__item,
                 item.selected ? cls.selected : "", 
-                item.from_user === user_id ? cls.message_owner : cls.message_other
+                item.from_user == user_id ? cls.message_owner : cls.message_other
             ].join(" ")}>
             {children}
         </div>

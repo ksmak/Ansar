@@ -89,32 +89,39 @@ class MessageConsumer(JsonWebsocketConsumer):
     """Consumer for chat."""
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
-        self.user = None
-        self.chat_id = None
-        self.chat = None
-        self.chat_group_name = None
+        self.type = None
+        self.id = None
+        self.from_user = None
+        self.group_name = None
 
     def connect(self):
-        self.chat_id = self.scope["url_route"]["kwargs"]["chat_id"]
-        self.chat_group_name = "chat_%s" % self.chat_id
+        self.type = self.scope["url_route"]["kwargs"]["type"]
+        self.id = self.scope["url_route"]["kwargs"]["id"]
+        
+        self.group_name = "%s_chat_%s" % (self.type, self.id)
 
-        self.user = self.scope["user"]
-        if type(self.user) != User:
-            raise ValidationError('User not found.')
+        self.from_user = self.scope["user"]
+        if type(self.from_user) != User:
+            raise ValidationError('Sender user not found.')
 
-        self.chat = Chat.objects.filter(id=self.chat_id).first()
-        if not self.chat:
-            raise ValidationError('Chat not found.')
+        if self.type == "user":
+            user = User.objects.filter(id=self.id).first()
+            if not user:
+                raise ValidationError('User not found.')
+        else:
+            chat = Chat.objects.filter(id=self.id).first()
+            if not chat:
+                raise ValidationError('Chat not found.')
 
         self.accept()
 
         async_to_sync(self.channel_layer.group_add)(
-            self.chat_group_name, self.channel_name
+            self.group_name, self.channel_name
         )
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
-            self.chat_group_name, self.channel_name
+            self.group_name, self.channel_name
         )
 
     def receive_json(self, content, **kwargs):
@@ -122,22 +129,25 @@ class MessageConsumer(JsonWebsocketConsumer):
 
         if message == "send_message":
             send_message.delay(
-               self.chat_group_name,
-               self.chat.id,
-               self.user.id,
+               self.group_name,
+               self.type,
+               self.id,
+               self.from_user.id,
                content['text'],
                content['file_path']
             )
         elif message == "read_message":
             read_message.delay(
-               self.chat_group_name,
-               self.user.id,
+               self.group_name,
+               self.type,
+               self.from_user.id,
                content['message_id']
             )
         elif message == "delete_message":
             delete_message.delay(
-               self.chat_group_name,
-               self.user.id,
+               self.group_name,
+               self.type,
+               self.from_user.id,
                content['message_id']
             )
 
