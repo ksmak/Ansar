@@ -6,7 +6,7 @@ import cls from './ChatItem.module.scss'
 
 const ChatItem = ({children, item, selectItem, ...props}) => {
     return (
-        <div {...props} className={[cls.chat__item, (item == selectItem ? cls.active: "")].join(' ')}>
+        <div {...props} className={[cls.chat__item, (item === selectItem ? cls.active: "")].join(' ')}>
             {children}
         </div>
     );

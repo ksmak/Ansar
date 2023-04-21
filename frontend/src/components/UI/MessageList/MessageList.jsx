@@ -7,7 +7,7 @@ import MessageItem from '../MessageItem/MessageItem'
 // CSS
 import cls from './MessageList.module.scss'
 
-const MessageList = ({items, user_id}) => {
+const MessageList = ({items, userId}) => {
     return (
         <div className={cls.message__list}>
             {items.length 
@@ -15,7 +15,7 @@ const MessageList = ({items, user_id}) => {
                             <MessageItem
                                 key={item.id}
                                 item={item}
-                                user_id={user_id}
+                                user_id={userId}
                             >
                                 {item.text}
                             </MessageItem>

@@ -4,20 +4,23 @@ import "./main.scss"
 import LoginPage from "../pages/LoginPage/LoginPage";
 import MainPage from "../pages/MainPage/MainPage";
 
-import { ProtectedRouter } from "../../hok/ProtectedRouter";
+import { ProtectedRouter } from "../../hoc/ProtectedRouter";
+import { AuthProvider } from "../../hoc/AuthProvider";
 
 function App () {
   return (
-    <BrowserRouter>
-    <Routes>
-      <Route path='/' element={
-        <ProtectedRouter>
-          <MainPage />
-        </ProtectedRouter>
-      } />
-      <Route path='/login' element={<LoginPage />} />
-    </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+      <Routes>
+        <Route path='/' element={
+          <ProtectedRouter>
+            <MainPage />
+          </ProtectedRouter>
+        } />
+        <Route path='/login' element={<LoginPage />} />
+      </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 

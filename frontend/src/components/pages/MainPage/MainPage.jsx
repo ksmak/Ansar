@@ -13,150 +13,129 @@ import Textarea from "../../UI/Textarea/Textarea";
 // CSS
 import cls from './MainPage.module.scss';
 
+import { useAuth } from '../../../hooks/useAuth';
+
 
 const MainPage = () => {
+  const { accessToken, userId, userFullname } = useAuth();
+
+  const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [selectItem, setSelectItem] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const [panel, setPanel] = useState('chats');
+  const [messageType, setMessageType] = useState('chat');
 
-  const chatSocket = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${localStorage.getItem('access')}`);
-  chatSocket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    switch (data.type) {
-      case "new_chat":
-        const sc = createSocket(`ws://127.0.0.1:8000/ws/group?token=${localStorage.getItem('access')}`)
-        const obj = {
-          socket: sc,
-          item: data.chat
-        }
-        setChats(prev => prev.concat(obj));
-        break;
-      case "change_chat":
-        setChats(prev => {
-          const index = prev.findIndex(item => item.item.id === data.chat.id);
-          let new_arr = [...prev];
-          const obj = {
-            socket: prev[index].socket,
-            item: data.chat
-          }
-          new_arr.splice(index, 1, obj);
-          return new_arr;
-        });
-        break;
-      case "remove_chat":
-        setChats(prev => {
-          const index = prev.findIndex(item => item.item.id === data.chat_id);
-          let new_arr = [...prev];
-          new_arr.splice(index, 1);
-          return new_arr;
-        });
-        break;
-      default:
-        console.log("Unknown message type!")
-        break;
-    }
-  };
-  
-  const createSocket = (url) => {
-    const socket = new WebSocket(url);
+  const createSocket = () => {
+    const socket = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${accessToken}`);
+    
     socket.onmessage = function(e) {
-      let data = JSON.parse(e.data);
-      switch (data.type) {
+      const data = JSON.parse(e.data);
+      switch (data.category) {
+        case "new_chat":
+          setChats(prev => prev.concat(data.chat));
+          break;
+        
+        case "change_chat":
+          setChats(prev => {
+            const index = prev.findIndex(item => item.id === data.chat.id);
+            let new_arr = [...prev];
+            new_arr.splice(index, 1, data.chat);
+            return new_arr;
+          });
+          break;
+        
+        case "remove_chat":
+          setChats(prev => {
+            const index = prev.findIndex(item => item.id === data.chat_id);
+            let new_arr = [...prev];
+            new_arr.splice(index, 1);
+            return new_arr;
+          });
+          break;
+
         case "new_message":
+          console.log(data);
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(el => el.item.id === data.message.user);
+              const index = prev.findIndex(item => item.id === data.message.user);
               let new_arr = [...prev];
-              new_arr[index].item.messages.push(data.message);
+              new_arr[index].messages.unshift(data.message);
               return new_arr;
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(el => el.item.id === data.message.chat);
+              const index = prev.findIndex(item => item.id === data.message.chat);
               let new_arr = [...prev];
-              new_arr[index].item.messages.push(data.message);
+              new_arr[index].messages.push(data.message);
               return new_arr;
             });
           };
           break;
+
         case "change_message":
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(item => item.item.id === data.message.user);
+              const index = prev.findIndex(item => item.id === data.message.user);
               let new_arr = [...prev];
-              const i = new_arr[index].item.messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].item.messages.splice(i, 1, data.message);
+              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+              new_arr[index].messages.splice(i, 1, data.message);
               return new_arr;
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(item => item.item.id === data.message.chat);
+              const index = prev.findIndex(item => item.id === data.message.chat);
               let new_arr = [...prev];
-              const i = new_arr[index].item.messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].item.messages.splice(i, 1, data.message);
+              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+              new_arr[index].messages.splice(i, 1, data.message);
               return new_arr;
             });
           };
-        break;
-      case "remove_message":
-        if (data.message_type === "user") {
-          setUsers(prev => {
-            const index = prev.findIndex(item => item.item.id === data.message.user);
-            let new_arr = [...prev];
-              const i = new_arr[index].item.messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].item.messages.splice(i, 1);
-              return new_arr;
-          });
-        } else {
-          setChats(prev => {
-            const index = prev.findIndex(item => item.item.id === data.message.chat);
-            let new_arr = [...prev];
-              const i = new_arr[index].item.messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].item.messages.splice(i, 1);
-              return new_arr;
-          });
-        };
-        break;
-      default:
-        console.log("Unknown message type!")
-        break;
+          break;
+
+        case "remove_message":
+          if (data.message_type === "user") {
+            setUsers(prev => {
+              const index = prev.findIndex(item => item.id === data.message.user);
+              let new_arr = [...prev];
+                const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+                new_arr[index].messages.splice(i, 1);
+                return new_arr;
+            });
+          } else {
+            setChats(prev => {
+              const index = prev.findIndex(item => item.id === data.message.chat);
+              let new_arr = [...prev];
+                const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+                new_arr[index].messages.splice(i, 1);
+                return new_arr;
+            });
+          };
+          break;  
+
+        default:
+          console.log("Unknown message type!")
+          break;
       }
     };
+
     return socket;
-  };
+  }
   
   useEffect(() => {
+    setSocket(createSocket());
     api.ansarClient.get_users()
       .then((resp) => {
-        let arr = []
-        resp.data.forEach(user => {
-          const sc = createSocket(`ws://127.0.0.1:8000/ws/message/user/${user.id}?token=${localStorage.getItem('access')}`);
-          let obj = {
-            socket: sc,
-            item: user
-          };
-          arr.push(obj);
-        });
-        setUsers(arr);
+        setUsers(resp.data);
       })
       .catch((error) => {
         console.log('Error', error.message)
       });
+
     api.ansarClient.get_chats()
       .then((resp) => {
-        let arr = []
-        resp.data.forEach(chat => {
-          const sc = createSocket(`ws://127.0.0.1:8000/ws/message/group/${chat.id}?token=${localStorage.getItem('access')}`);
-          let obj = {
-            socket: sc,
-            item: chat
-          };
-          arr.push(obj);
-        });
-        setChats(arr);
+        setChats(resp.data);
       })
       .catch((error) => {
         console.log('Error', error.message)
@@ -165,24 +144,28 @@ const MainPage = () => {
 
   const handleItemClick = (item) => {
     setSelectItem(item);
-    setMessages(item.item.messages);
+    setMessages(item.messages);
   }
 
   const handleSendMessage = () => {
     const message = {
       message: "send_message",
+      message_type: messageType,
+      id: selectItem.id,
       text: text,
       file_path: null
     }
      
-    selectItem.socket.send(JSON.stringify(message));
+    socket.send(JSON.stringify(message));
 
     setText('');
   }
 
   const handleSendFile = () => {
     let input = document.createElement('input');
+
     input.type = 'file';
+
     input.onchange = e => { 
       let file = e.target.files[0]; 
       let formData = new FormData();
@@ -191,36 +174,38 @@ const MainPage = () => {
       .then((resp) => {
         const message = {
           message: "send_message",
-          text: "#file#",
+          message_type: messageType,
+          id: selectItem.id,
+          text: null,
           file_path: resp.data.file_url
         }
          
-        selectItem.socket.send(JSON.stringify(message));
-
+        socket.send(JSON.stringify(message));
         setText('');
       })
       .catch((error) => {
         console.log('Error', error.message)
       }); 
     }
+
     input.click();
   }
 
   return (
     <div className="content">
       <h1>Ansar Chat</h1>
-      <p>{localStorage.getItem('full_name')}</p>
+      <p>Пользователь: {userFullname}</p>
       <div className={cls.main__panel}>
         <div className={cls.left__panel}>
           <div className={cls.left__panel__toolbar}>
-            <Button onClick={() => {setPanel('chats'); setSelectItem(null)}}>Чаты</Button>
-            <Button onClick={() => {setPanel('users'); setSelectItem(null)}}>Пользователи</Button>
+            <Button onClick={() => {setMessageType('chat'); setSelectItem(null)}}>Чаты</Button>
+            <Button onClick={() => {setMessageType('group'); setSelectItem(null)}}>Пользователи</Button>
           </div>
           <div className={cls.left__panel__list}>
             <ChatList
               items={users}
               onItemClick={handleItemClick}
-              is_visible={panel === 'users'}
+              is_visible={messageType === 'user'}
               selectItem={selectItem}
             />
           </div>
@@ -228,14 +213,14 @@ const MainPage = () => {
             <ChatList
               items={chats}
               onItemClick={handleItemClick}
-              is_visible={panel === 'chats'}
+              is_visible={messageType === 'group'}
               selectItem={selectItem}
             />
           </div>
         </div>  
         <div className={cls.right__panel}>
           <div className={cls.chat__panel}>
-            <MessageList items={messages} user_id={localStorage.getItem('user')}/>
+            <MessageList items={messages} userId={userId}/>
           </div>
           <div className={cls.send__panel}>
             <Textarea

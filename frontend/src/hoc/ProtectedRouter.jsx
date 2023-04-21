@@ -1,11 +1,12 @@
 import { useLocation, Navigate } from 'react-router-dom';
 
+import { useAuth } from '../hooks/useAuth';
+
 const ProtectedRouter = ({children}) => {
     const location = useLocation();
-    const access_token = localStorage.getItem('access');
-    const refresh_token = localStorage.getItem('refresh');
+    const { accessToken } = useAuth(); 
 
-    if (!access_token || !refresh_token) {
+    if (!accessToken) {
         return <Navigate  to="/login" replace state={{from: location}} />
     }
 

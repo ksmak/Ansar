@@ -1,7 +1,6 @@
 from celery import shared_task
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 
@@ -42,7 +41,8 @@ def create_chat(
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "new_chat",
+            "type": "chat_message",
+            "category": "new_chat",
             "chat": serializer.data
         }
     )
@@ -69,8 +69,8 @@ def update_chat(group_name: str, user_id: int, is_join: bool):
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
-                "type": "change_chat",
-                "category": "join_chat",
+                "type": "chat_message",
+                "category": "change_chat",
                 "chat": serializer.data
             }
         )
@@ -92,7 +92,8 @@ def delete_chat(
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "remove_chat",
+            "type": "chat_message",
+            "category": "remove_chat",
             "chat_id": chat_id
         }
     )
@@ -101,18 +102,18 @@ def delete_chat(
 @shared_task
 def send_message(
     group_name: str,
-    _type: str,
-    group_id: int,
+    message_type: str,
+    id: int,
     from_user_id: int,
     text: str,
     file_path: str
-) -> None:  
+) -> None:
     user = None
     chat = None
-    if _type == "user":
-        user = get_user_model().objects.get(id=group_id)
-    else:    
-        chat = Chat.objects.get(id=group_id)
+    if message_type == "user":
+        user = get_user_model().objects.get(id=id)
+    else:
+        chat = Chat.objects.get(id=id)
 
     from_user = get_user_model().objects.get(id=from_user_id)
 
@@ -131,8 +132,9 @@ def send_message(
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "new_message",
-            "message_type": _type,
+            "type": "chat_message",
+            "category": "new_message",
+            "message_type": message_type,
             "message": message_serializer.data,
         }
     )
@@ -141,7 +143,7 @@ def send_message(
 @shared_task
 def read_message(
     group_name: str,
-    _type: str,
+    message_type: str,
     user_id: int,
     message_id: int
 ) -> None:
@@ -161,8 +163,9 @@ def read_message(
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "change_message",
-            "message_type": _type,
+            "type": "chat_message",
+            "category": "change_message",
+            "message_type": message_type,
             "message": serializer.data
         }
     )
@@ -171,7 +174,7 @@ def read_message(
 @shared_task
 def delete_message(
     group_name: str,
-    _type: str,
+    message_type: str,
     user_id: int,
     message_id: int
 ):
@@ -185,8 +188,9 @@ def delete_message(
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "remove_message",
-            "message_type": _type,
+            "type": "chat_message",
+            "category": "remove_message",
+            "message_type": message_type,
             "message_id": message_id,
             "user_id": user_id,
             "delete_date": timezone.now(),

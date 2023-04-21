@@ -1,6 +1,6 @@
 // React, Redux, Router
-import React, { useState } from 'react'
-import { useNavigate, useLocation } from "react-router-dom"
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from "react-router-dom";
 
 // Project
 import api from '../../../api/index';
@@ -14,6 +14,8 @@ import Error from '../../UI/Error/Error';
 // CSS
 import cls from './LoginPage.module.scss';
 
+import { useAuth } from '../../../hooks/useAuth';
+
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation(); 
@@ -22,9 +24,11 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    const { onLogin } = useAuth();
+
     let fromPage = location.state?.from?.pathname || '/';
 
-    if (fromPage == '/login') {
+    if (fromPage === '/login') {
         fromPage = '/';
     }
 
@@ -33,11 +37,7 @@ const LoginPage = () => {
         
         api.ansarClient.login({'username': username, 'password': password})
             .then((resp) => {
-                localStorage.setItem('access', resp.data.access);
-                localStorage.setItem('refresh', resp.data.refresh);
-                localStorage.setItem('user', resp.data.id);
-                localStorage.setItem('full_name', resp.data.full_name);
-                navigate(fromPage, {replace: true});
+                onLogin(resp.data, () => navigate(fromPage, {replace: true}));
             })
             .catch(() => {
                 setError('Ошибка! Имя пользователя или пароль не верны.');
