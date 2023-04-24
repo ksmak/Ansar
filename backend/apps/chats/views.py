@@ -59,10 +59,11 @@ class FileUploadView(APIView):
             }, HTTP_400_BAD_REQUEST)
 
         file = request.FILES['file']
+
         fs = FileSystemStorage()
-        filename = fs.save(file.name, file)
-        file_url = fs.url(filename)
+
+        fs.save(file.name, file)
 
         return Response({
-            'file_url': file_url
+            'filename': file.name,
         }, HTTP_202_ACCEPTED)

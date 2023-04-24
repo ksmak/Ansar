@@ -1,20 +1,15 @@
-// React, Redux, Router
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 
-// Project
+import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../api/index';
-
-// Components
 import Button from '../../UI/Button/Button';
 import Input from '../../UI/Input/Input';
 import Label from '../../UI/Label/Label';
 import Error from '../../UI/Error/Error';
 
-// CSS
 import cls from './LoginPage.module.scss';
 
-import { useAuth } from '../../../hooks/useAuth';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -27,6 +22,8 @@ const LoginPage = () => {
     const { onLogin } = useAuth();
 
     let fromPage = location.state?.from?.pathname || '/';
+
+    console.log(fromPage);
 
     if (fromPage === '/login') {
         fromPage = '/';

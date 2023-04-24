@@ -1,8 +1,11 @@
 function DockerComposeBuild { docker-compose build }
 Set-Alias dbd DockerComposeBuild
 
-function DockerComposeUp { docker-compose up }
+function DockerComposeUp { docker-compose up -d }
 Set-Alias dup DockerComposeUp
+
+function DockerComposeDown { docker-compose down }
+Set-Alias dwn DockerComposeDown
 
 function DockerComposeDjangoMakeMigrations {
     docker-compose exec backend python manage.py makemigrations

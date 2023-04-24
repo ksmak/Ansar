@@ -1,19 +1,14 @@
-// React, Redux, WebSocket
 import React, { useEffect, useState } from "react";
 
-// Project
 import api from '../../../api/index';
-
-// Components
+import { useAuth } from '../../../hooks/useAuth';
 import ChatList from "../../UI/ChatList/ChatList";
 import MessageList from "../../UI/MessageList/MessageList";
 import Button from "../../UI/Button/Button";
 import Textarea from "../../UI/Textarea/Textarea";
 
-// CSS
 import cls from './MainPage.module.scss';
 
-import { useAuth } from '../../../hooks/useAuth';
 
 
 const MainPage = () => {
@@ -56,12 +51,11 @@ const MainPage = () => {
           break;
 
         case "new_message":
-          console.log(data);
           if (data.message_type === "user") {
             setUsers(prev => {
               const index = prev.findIndex(item => item.id === data.message.user);
               let new_arr = [...prev];
-              new_arr[index].messages.unshift(data.message);
+              new_arr[index].messages.push(data.message);
               return new_arr;
             });
           } else {
@@ -126,21 +120,22 @@ const MainPage = () => {
   useEffect(() => {
     setSocket(createSocket());
     api.ansarClient.get_users()
-      .then((resp) => {
-        setUsers(resp.data);
-      })
-      .catch((error) => {
-        console.log('Error', error.message)
-      });
-
+    .then((resp) => {
+      setUsers(resp.data);
+    })
+    .catch((error) => {
+      console.log('Error', error.message)
+    });
+    
     api.ansarClient.get_chats()
-      .then((resp) => {
-        setChats(resp.data);
-      })
-      .catch((error) => {
-        console.log('Error', error.message)
-      });
-  }, [])
+    .then((resp) => {
+      setChats(resp.data);
+    })
+    .catch((error) => {
+      console.log('Error', error.message)
+    });
+    // eslint-disable-next-line
+  }, []);
 
   const handleItemClick = (item) => {
     setSelectItem(item);
@@ -153,7 +148,7 @@ const MainPage = () => {
       message_type: messageType,
       id: selectItem.id,
       text: text,
-      file_path: null
+      filename: null
     }
      
     socket.send(JSON.stringify(message));
@@ -177,7 +172,7 @@ const MainPage = () => {
           message_type: messageType,
           id: selectItem.id,
           text: null,
-          file_path: resp.data.file_url
+          filename: resp.data.filename
         }
          
         socket.send(JSON.stringify(message));
@@ -199,7 +194,7 @@ const MainPage = () => {
         <div className={cls.left__panel}>
           <div className={cls.left__panel__toolbar}>
             <Button onClick={() => {setMessageType('chat'); setSelectItem(null)}}>Чаты</Button>
-            <Button onClick={() => {setMessageType('group'); setSelectItem(null)}}>Пользователи</Button>
+            <Button onClick={() => {setMessageType('user'); setSelectItem(null)}}>Пользователи</Button>
           </div>
           <div className={cls.left__panel__list}>
             <ChatList
@@ -213,7 +208,7 @@ const MainPage = () => {
             <ChatList
               items={chats}
               onItemClick={handleItemClick}
-              is_visible={messageType === 'group'}
+              is_visible={messageType === 'chat'}
               selectItem={selectItem}
             />
           </div>

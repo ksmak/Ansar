@@ -78,7 +78,7 @@ class ChatConsumer(JsonWebsocketConsumer):
                content["id"],
                self.user.id,
                content['text'],
-               content['file_path']
+               content['filename']
             )
         elif content["message"] == "read_message":
             read_message.delay(

@@ -31,14 +31,14 @@ class MessageSerializer(serializers.ModelSerializer):
             'text',
             'file',
             'creation_date',
-            'readers'
+            'readers',
         )
 
 
 class ChatSerializer(serializers.ModelSerializer):
     """Chat serializer model."""
     messages = MessageSerializer(source='chat_messages', many=True)
-    
+
     class Meta:
         model = Chat
 

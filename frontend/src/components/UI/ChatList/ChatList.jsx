@@ -24,7 +24,7 @@ const ChatList = ({ items, onItemClick, is_visible, selectItem }) => {
                         </ChatItem>
                     )
                 })
-                : "Nothing"
+                : ""
             }
         </div>
         : ""

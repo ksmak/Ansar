@@ -1,4 +1,4 @@
-@import '../../App/vars';
+@import '../../../vars';
 .message__item {
     width: 80%;
     padding: 5px;
@@ -9,11 +9,14 @@
     border-radius: 12px;
     background-color: white;
 }
-.message_owner {
+.message__owner {
     background-color: $message-owner-color;
     align-self: flex-end;
 }
-.message_other {
+.message__other {
     background-color: $message-other-color;
     align-self: flex-start;
+}
+.message__file {
+    width: auto;
 }

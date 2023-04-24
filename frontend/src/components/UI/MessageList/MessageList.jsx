@@ -1,10 +1,7 @@
-// React
 import React from 'react'
+import MessageItem from '../MessageItem/MessageItem';
+import File from '../File/File';
 
-// Components
-import MessageItem from '../MessageItem/MessageItem'
-
-// CSS
 import cls from './MessageList.module.scss'
 
 const MessageList = ({items, userId}) => {
@@ -17,7 +14,15 @@ const MessageList = ({items, userId}) => {
                                 item={item}
                                 user_id={userId}
                             >
-                                {item.text}
+                                { item.text 
+                                    ? item.text
+                                    : item.file 
+                                        ? <File 
+                                            filename={item.file}
+                                            path={"http://127.0.0.1:8000" + item.file} >
+                                          </File>  
+                                        : ""
+                                }
                             </MessageItem>
                     )
                 : ""

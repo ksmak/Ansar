@@ -1,7 +1,6 @@
 # Django
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.conf import settings
 
 
 User = get_user_model()
@@ -68,10 +67,12 @@ class Message(models.Model):
     )
     text = models.TextField(
         verbose_name='текст сообщения',
+        null=True,
+        blank=True
     )
-    file = models.FilePathField(
+    file = models.FileField(
         verbose_name='вложенный файл',
-        path=settings.MEDIA_ROOT,
+        upload_to='',
         null=True,
         blank=True
     )

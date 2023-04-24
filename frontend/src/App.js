@@ -1,11 +1,11 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./main.scss"
 
-import LoginPage from "../pages/LoginPage/LoginPage";
-import MainPage from "../pages/MainPage/MainPage";
+import LoginPage from './components/pages/LoginPage/LoginPage'
+import MainPage from "./components/pages/MainPage/MainPage";
 
-import { ProtectedRouter } from "../../hoc/ProtectedRouter";
-import { AuthProvider } from "../../hoc/AuthProvider";
+import { ProtectedRouter } from "./hoc/ProtectedRouter";
+import { AuthProvider } from "./hoc/AuthProvider";
 
 function App () {
   return (

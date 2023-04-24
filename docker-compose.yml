@@ -43,8 +43,7 @@ services:
     ports:
       - 3000:3000
     environment:
-      - SERVER_HOST='http://127.0.0.1:8000'
-      - CHOKIDAR_USEPOLLING='true'
+      - CHOKIDAR_USEPOLLING=true
 
   redis:
     container_name: redis

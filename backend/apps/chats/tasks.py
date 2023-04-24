@@ -1,9 +1,8 @@
-from celery import shared_task
-
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 
+from celery import shared_task
 from channels.layers import get_channel_layer
 
 from .models import Chat, Message, Reader
@@ -106,7 +105,7 @@ def send_message(
     id: int,
     from_user_id: int,
     text: str,
-    file_path: str
+    filename: str
 ) -> None:
     user = None
     chat = None
@@ -121,9 +120,12 @@ def send_message(
         user=user,
         chat=chat,
         from_user=from_user,
-        text=text,
-        file=file_path
+        text=text
     )
+
+    if filename:
+        message.file.name = filename
+        message.save()
 
     message_serializer = MessageSerializer(message)
 
