@@ -1,5 +1,10 @@
 const ansarClientModule = (instance) => {
     return {
+        async test() {
+            instance.post('api/test/')
+            .then(() => true)
+            .catch(() => false)
+        },
         login(params) {
             return instance({
                 method: 'post',

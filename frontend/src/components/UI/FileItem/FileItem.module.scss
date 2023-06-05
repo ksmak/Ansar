@@ -1,0 +1,20 @@
+@import '../../../vars';
+.file__box {
+    display: flex;
+    flex-direction: column;
+}
+.file__title {
+    font-size: 12pt;
+    font-weight: 700;
+    text-align: center;
+    padding: 5px;
+}
+.file__img {
+    width: 250px;
+    height: 250px;
+    border: 1px solid $primary-color;
+}
+.file__button {
+    text-align: center;
+    background-color: $form-bgcolor;
+}

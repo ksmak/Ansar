@@ -1,8 +1,7 @@
-// React
 import React from 'react'
 
-// CSS
 import cls from './MessageItem.module.scss'
+
 
 const MessageItem = ({children, item, user_id, ...props}) => {
     return (

@@ -15,7 +15,8 @@ from chats.views import (
 )
 from auths.views import (
     MyTokenObtainPairView,
-    UsersViewSet
+    UsersViewSet,
+    TestTokenView,
 )
 
 
@@ -29,7 +30,8 @@ urlpatterns = [
     path('api/token/', MyTokenObtainPairView.as_view()),
     path('api/token/refresh/', jwt_views.TokenRefreshView.as_view()),
     path('api/', include(router.urls)),
-    path('api/uploadfile/', FileUploadView.as_view())
+    path('api/uploadfile/', FileUploadView.as_view()),
+    path('api/test/', TestTokenView.as_view()),
 ]
 
 

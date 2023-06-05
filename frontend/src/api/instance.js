@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-	baseURL: "http://127.0.0.1:8000",
+	baseURL: process.env.REACT_APP_API_HOST,
 	headers: {
 		'Content-Type': 'application/json',
 	},
@@ -18,7 +18,7 @@ instance.interceptors.response.use((config) => {
 		const originalRequest = error.config;
   		if (error.response.status === 401 && error.config && !error.config._isRetry) {
      		originalRequest._isRetry = true;
-     		const response = await axios.post("http://127.0.0.1:8000/api/token/refresh/", {
+     		const response = await axios.post(`${process.env.REACT_APP_API_HOST}/api/token/refresh/`, {
             		refresh: sessionStorage.getItem('refresh')
                 }, { 
 				headers: {

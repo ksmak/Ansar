@@ -1,8 +1,9 @@
-import React from 'react'
-import MessageItem from '../MessageItem/MessageItem';
-import File from '../File/File';
+import React from 'react';
 
-import cls from './MessageList.module.scss'
+import MessageItem from '../MessageItem/MessageItem';
+import FileItem from '../FileItem/FileItem';
+
+import cls from './MessageList.module.scss';
 
 const MessageList = ({items, userId}) => {
     return (
@@ -17,10 +18,10 @@ const MessageList = ({items, userId}) => {
                                 { item.text 
                                     ? item.text
                                     : item.file 
-                                        ? <File 
-                                            filename={item.file}
-                                            path={"http://127.0.0.1:8000" + item.file} >
-                                          </File>  
+                                        ? <FileItem
+                                            filename={item.file.splice(item.file.lastIndexOf('/') + 1)}
+                                            path={process.env.REACT_APP_API_HOST + item.file} >
+                                          </FileItem>  
                                         : ""
                                 }
                             </MessageItem>
@@ -31,4 +32,4 @@ const MessageList = ({items, userId}) => {
     )
 }
 
-export default MessageList
+export default MessageList;

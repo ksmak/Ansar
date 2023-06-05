@@ -1,11 +1,9 @@
-// React
 import React from 'react'
 
-// Project
 import ChatItem from '../ChatItem/ChatItem';
 
-// CSS
 import cls from './ChatList.module.scss'
+
 
 const ChatList = ({ items, onItemClick, is_visible, selectItem }) => {
     return (

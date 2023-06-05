@@ -1,8 +1,7 @@
-// React
 import React from 'react'
 
-// CSS
 import cls from './ChatItem.module.scss'
+
 
 const ChatItem = ({children, item, selectItem, ...props}) => {
     return (

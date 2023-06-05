@@ -23,12 +23,6 @@ const LoginPage = () => {
 
     let fromPage = location.state?.from?.pathname || '/';
 
-    console.log(fromPage);
-
-    if (fromPage === '/login') {
-        fromPage = '/';
-    }
-
     const onSignIn = (e) => {
         e.preventDefault();
         

@@ -1,5 +1,6 @@
 import React from 'react';
-import cls from './Input.module.scss'
+
+import cls from './Input.module.scss';
 
 
 const Input = ({children, ...props}) => {

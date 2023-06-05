@@ -84,7 +84,7 @@ class Message(models.Model):
     class Meta:
         verbose_name = 'сообщение'
         verbose_name_plural = 'сообщения'
-        ordering = ('-creation_date', )
+        ordering = ('creation_date', )
 
     def __str__(self) -> str:
         return f"Message[{self.from_user} {self.creation_date}]: {self.text}" # noqa

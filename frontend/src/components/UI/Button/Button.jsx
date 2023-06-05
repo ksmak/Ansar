@@ -1,8 +1,7 @@
-// React
-import React from 'react'
+import React from 'react';
 
-// CSS
-import cls from './Button.module.scss'
+import cls from './Button.module.scss';
+
 
 const Button = ({children, ...props}) => {
     return (

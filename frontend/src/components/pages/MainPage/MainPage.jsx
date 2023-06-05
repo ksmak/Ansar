@@ -13,7 +13,6 @@ import cls from './MainPage.module.scss';
 
 const MainPage = () => {
   const { accessToken, userId, userFullname } = useAuth();
-
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
