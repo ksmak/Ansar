@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import api from '../../../api/index';
 import { useAuth } from '../../../hooks/useAuth';
@@ -12,7 +13,8 @@ import cls from './MainPage.module.scss';
 
 
 const MainPage = () => {
-  const { accessToken, userId, userFullname } = useAuth();
+  const navigate = useNavigate();
+  const { accessToken, userId, userFullname, onLogout } = useAuth();
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
@@ -188,7 +190,10 @@ const MainPage = () => {
   return (
     <div className="content">
       <h1>Ansar Chat</h1>
-      <p>Пользователь: {userFullname}</p>
+      <div className={cls.top__panel}>
+        <p>Пользователь: {userFullname}</p>
+        <Button onClick={() => onLogout(() => navigate('/login'))}>Выйти</Button>
+      </div>
       <div className={cls.main__panel}>
         <div className={cls.left__panel}>
           <div className={cls.left__panel__toolbar}>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Button from '../Button/Button';
+import DownloadButton from '../DownloadButton/DownloadButton';
 
 import cls from './FileItem.module.scss';
 
@@ -15,7 +15,15 @@ const FileItem = ({filename, path}) => {
                 backgroundSize: 'cover',
             }}></div>
             <div className={cls.file__button}>
-                <Button>Загрузить</Button>
+                <DownloadButton
+                    onClick={() => {
+                        let ref = document.createElement('a');
+                        ref.href = path;
+                        ref.click();
+                    }}
+                >
+                    Загрузить
+                </DownloadButton>
             </div>
         </div>
   )

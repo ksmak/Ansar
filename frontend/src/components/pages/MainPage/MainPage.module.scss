@@ -8,6 +8,11 @@
     border: 1px solid $border-color;
     background-color: $form-bgcolor;
 }
+.top__panel {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
 .left__panel {
     flex-grow: 1;
     border-right: 1px solid $border-color;

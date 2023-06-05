@@ -30,11 +30,9 @@ instance.interceptors.response.use((config) => {
 				sessionStorage.setItem('access', response.data.access);
 				return instance.request(originalRequest);
 			} else {
-				console.log('НЕ АВТОРИЗОВАН');
+				console.log('No authorization.');
 				sessionStorage.removeItem('access');
 				sessionStorage.removeItem('refresh');
-				sessionStorage.removeItem('id');
-				sessionStorage.removeItem('full_name');
 			}
   		}
 		return error;

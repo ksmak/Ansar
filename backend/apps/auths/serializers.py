@@ -20,7 +20,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             "access": data["access"],
             "refresh": data["refresh"],
             "id": self.user.id,
-            "full_name": self.user.full_name
+            "full_name": self.user.full_name if self.user.full_name.strip() != "" else self.user.username # noqa
         }
 
 

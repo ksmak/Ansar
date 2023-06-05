@@ -15,14 +15,12 @@ const MessageList = ({items, userId}) => {
                                 item={item}
                                 user_id={userId}
                             >
-                                { item.text 
-                                    ? item.text
-                                    : item.file 
-                                        ? <FileItem
-                                            filename={item.file.splice(item.file.lastIndexOf('/') + 1)}
-                                            path={process.env.REACT_APP_API_HOST + item.file} >
-                                          </FileItem>  
-                                        : ""
+                                { item.file
+                                    ? <FileItem
+                                        filename={decodeURI(item.file.slice(item.file.lastIndexOf('/') + 1))}
+                                        path={process.env.REACT_APP_API_HOST + item.file} >
+                                      </FileItem>  
+                                    : item.text
                                 }
                             </MessageItem>
                     )
