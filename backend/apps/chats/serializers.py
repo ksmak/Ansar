@@ -25,9 +25,9 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = (
             'id',
-            'user',
-            'chat',
             'from_user',
+            'to_user',
+            'to_chat',
             'text',
             'file',
             'creation_date',

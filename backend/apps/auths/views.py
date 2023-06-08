@@ -24,8 +24,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 class UsersViewSet(ReadOnlyModelViewSet):
     """Users viewset."""
-    queryset = User.objects.exclude(is_superuser=True)
     serializer_class = CustomUserSerializer
+
+    def get_queryset(self):
+        return User.objects.exclude(
+            username=self.request.user.username
+        )
 
 
 class TestTokenView(APIView):

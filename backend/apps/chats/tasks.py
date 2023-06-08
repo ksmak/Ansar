@@ -117,9 +117,9 @@ def send_message(
     from_user = get_user_model().objects.get(id=from_user_id)
 
     message = Message.objects.create(
-        user=user,
-        chat=chat,
         from_user=from_user,
+        to_user=user,
+        to_chat=chat,
         text=text
     )
 
@@ -149,13 +149,13 @@ def read_message(
     user_id: int,
     message_id: int
 ) -> None:
-    from_user = get_user_model().objects.get(id=user_id)
+    user = get_user_model().objects.get(id=user_id)
 
     message = Message.objects.get(id=message_id)
 
     Reader.objects.create(
         message=message,
-        user=from_user
+        user=user
     )
 
     serializer = MessageSerializer(message)

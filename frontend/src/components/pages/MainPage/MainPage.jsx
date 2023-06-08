@@ -54,14 +54,14 @@ const MainPage = () => {
         case "new_message":
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(item => item.id === data.message.user);
+              const index = prev.findIndex(item => (item.id === data.message.to_user || item.id === data.message.from_user));
               let new_arr = [...prev];
               new_arr[index].messages.push(data.message);
               return new_arr;
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(item => item.id === data.message.chat);
+              const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
               new_arr[index].messages.push(data.message);
               return new_arr;
@@ -72,7 +72,7 @@ const MainPage = () => {
         case "change_message":
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(item => item.id === data.message.user);
+              const index = prev.findIndex(item => item.id === data.message.to_user);
               let new_arr = [...prev];
               const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
               new_arr[index].messages.splice(i, 1, data.message);
@@ -80,7 +80,7 @@ const MainPage = () => {
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(item => item.id === data.message.chat);
+              const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
               const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
               new_arr[index].messages.splice(i, 1, data.message);
@@ -92,7 +92,7 @@ const MainPage = () => {
         case "remove_message":
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(item => item.id === data.message.user);
+              const index = prev.findIndex(item => item.id === data.message.to_user);
               let new_arr = [...prev];
                 const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
                 new_arr[index].messages.splice(i, 1);
@@ -100,7 +100,7 @@ const MainPage = () => {
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(item => item.id === data.message.chat);
+              const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
                 const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
                 new_arr[index].messages.splice(i, 1);

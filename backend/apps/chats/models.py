@@ -44,26 +44,26 @@ class Chat(models.Model):
 
 class Message(models.Model):
     """Message model."""
-    user = models.ForeignKey(
-        verbose_name='пользователь',
+    from_user = models.ForeignKey(
+        verbose_name='отправитель',
+        to=User,
+        on_delete=models.CASCADE,
+    )
+    to_user = models.ForeignKey(
+        verbose_name='получатель: пользователь',
         to=User,
         on_delete=models.CASCADE,
         related_name='user_messages',
         null=True,
         blank=True
     )
-    chat = models.ForeignKey(
-        verbose_name='чат',
+    to_chat = models.ForeignKey(
+        verbose_name='получатель: чат',
         to=Chat,
         on_delete=models.CASCADE,
         related_name='chat_messages',
         null=True,
         blank=True
-    )
-    from_user = models.ForeignKey(
-        verbose_name='отправитель',
-        to=User,
-        on_delete=models.CASCADE,
     )
     text = models.TextField(
         verbose_name='текст сообщения',

@@ -31,8 +31,7 @@ instance.interceptors.response.use((config) => {
 				return instance.request(originalRequest);
 			} else {
 				console.log('No authorization.');
-				sessionStorage.removeItem('access');
-				sessionStorage.removeItem('refresh');
+				sessionStorage.clear();
 			}
   		}
 		return error;

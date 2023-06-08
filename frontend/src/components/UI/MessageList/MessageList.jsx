@@ -13,7 +13,7 @@ const MessageList = ({items, userId}) => {
                             <MessageItem
                                 key={item.id}
                                 item={item}
-                                user_id={userId}
+                                userId={userId}
                             >
                                 { item.file
                                     ? <FileItem
