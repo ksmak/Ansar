@@ -1,14 +1,10 @@
 @import '../../../vars';
 .chat__item {
-    background-color: $chat-color;
-    color: darkgreen;
+    width: 100%;
     padding: 15px;
-    text-align: center;
-    border-bottom: $border-color solid;
+    border-bottom: 1px solid $border-color;
     cursor: pointer;
-}
-.chat__item:hover {
-    background-color: $chat-color-hover;
+    font-size: 10pt;
 }
 .active {
     background-color: $chat-select-color;

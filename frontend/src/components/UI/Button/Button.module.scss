@@ -2,15 +2,18 @@
 .button {
     padding: 10px;
     margin: 5px;
-    color: $form-color;
+    color: $primary-color;
     font-size: $font-size;
-    background: transparent;
-    border: 1px solid $border-color;
+    background: lightblue;
+    border: 1.5px solid $primary-color;
     border-radius: 8px;
     cursor: pointer;
+    font-size: 10pt;
 }
-.button:hover {
-    color: white;
-    background: deepskyblue;
-    border: 1px solid white;
+
+*:disabled {
+    color: gray;
+    background-color: white;
+    cursor: default;
+    border: 1.5px solid gray;
 }

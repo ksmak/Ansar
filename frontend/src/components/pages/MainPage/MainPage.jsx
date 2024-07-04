@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from '../../../api/index';
@@ -6,15 +6,18 @@ import { useAuth } from '../../../hooks/useAuth';
 import ChatList from "../../UI/ChatList/ChatList";
 import MessageList from "../../UI/MessageList/MessageList";
 import Button from "../../UI/Button/Button";
-import Textarea from "../../UI/Textarea/Textarea";
 
+import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import "draft-js/dist/Draft.css";
 import cls from './MainPage.module.scss';
 
-
+import { Editor } from "react-draft-wysiwyg";
+import { EditorState, convertToRaw } from 'draft-js';
+import draftToHtml from 'draftjs-to-html';
 
 const MainPage = () => {
   const navigate = useNavigate();
-  const { accessToken, userId, userFullname, onLogout } = useAuth();
+  const { onLogout } = useAuth();
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
@@ -22,17 +25,32 @@ const MainPage = () => {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [messageType, setMessageType] = useState('chat');
+  const [editorState, setEditorState] = useState(
+    () => EditorState.createEmpty(),
+  );
+  const userFullname = sessionStorage.getItem('user_fullname');
+  const userId = Number(sessionStorage.getItem('user_id'));
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, chats, users]);
 
   const createSocket = () => {
-    const socket = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${accessToken}`);
-    
-    socket.onmessage = function(e) {
+    let accessToken = sessionStorage.getItem('access');
+    const socket = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat?token=${accessToken}`);
+
+    socket.onmessage = function (e) {
       const data = JSON.parse(e.data);
       switch (data.category) {
         case "new_chat":
           setChats(prev => prev.concat(data.chat));
           break;
-        
+
         case "change_chat":
           setChats(prev => {
             const index = prev.findIndex(item => item.id === data.chat.id);
@@ -41,7 +59,7 @@ const MainPage = () => {
             return new_arr;
           });
           break;
-        
+
         case "remove_chat":
           setChats(prev => {
             const index = prev.findIndex(item => item.id === data.chat_id);
@@ -94,20 +112,20 @@ const MainPage = () => {
             setUsers(prev => {
               const index = prev.findIndex(item => item.id === data.message.to_user);
               let new_arr = [...prev];
-                const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-                new_arr[index].messages.splice(i, 1);
-                return new_arr;
+              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+              new_arr[index].messages.splice(i, 1);
+              return new_arr;
             });
           } else {
             setChats(prev => {
               const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
-                const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-                new_arr[index].messages.splice(i, 1);
-                return new_arr;
+              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
+              new_arr[index].messages.splice(i, 1);
+              return new_arr;
             });
           };
-          break;  
+          break;
 
         default:
           console.log("Unknown message type!")
@@ -117,24 +135,31 @@ const MainPage = () => {
 
     return socket;
   }
-  
+
   useEffect(() => {
-    setSocket(createSocket());
+    try {
+      setSocket(createSocket());
+    } catch (error) {
+      console.log("Error create socket!");
+      navigate("/login");
+    }
     api.ansarClient.get_users()
-    .then((resp) => {
-      setUsers(resp.data);
-    })
-    .catch((error) => {
-      console.log('Error', error.message)
-    });
-    
+      .then((resp) => {
+        setUsers(resp.data);
+      })
+      .catch((error) => {
+        console.log('Error get users!', error.message);
+        navigate("/login");
+      });
+
     api.ansarClient.get_chats()
-    .then((resp) => {
-      setChats(resp.data);
-    })
-    .catch((error) => {
-      console.log('Error', error.message)
-    });
+      .then((resp) => {
+        setChats(resp.data);
+      })
+      .catch((error) => {
+        console.log('Error get chats!', error.message);
+        navigate("/login");
+      });
     // eslint-disable-next-line
   }, []);
 
@@ -151,10 +176,11 @@ const MainPage = () => {
       text: text,
       filename: null
     }
-     
+
     socket.send(JSON.stringify(message));
 
     setText('');
+    setEditorState(() => EditorState.createEmpty());
   }
 
   const handleSendFile = () => {
@@ -162,46 +188,55 @@ const MainPage = () => {
 
     input.type = 'file';
 
-    input.onchange = e => { 
-      let file = e.target.files[0]; 
+    input.onchange = e => {
+      let file = e.target.files[0];
       let formData = new FormData();
       formData.append('file', file);
       api.ansarClient.upload_file(formData)
-      .then((resp) => {
-        const message = {
-          message: "send_message",
-          message_type: messageType,
-          id: selectItem.id,
-          text: null,
-          filename: resp.data.filename
-        }
-         
-        socket.send(JSON.stringify(message));
-        setText('');
-      })
-      .catch((error) => {
-        console.log('Error', error.message)
-      }); 
+        .then((resp) => {
+          const message = {
+            message: "send_message",
+            message_type: messageType,
+            id: selectItem.id,
+            text: null,
+            filename: resp.data.filename
+          }
+
+          socket.send(JSON.stringify(message));
+          setText('');
+        })
+        .catch((error) => {
+          console.log('Error', error.message)
+        });
     }
 
     input.click();
   }
 
+  const onEditorStateChange = (editorState) => {
+    setEditorState(editorState);
+    const markup = draftToHtml(convertToRaw(editorState.getCurrentContent()));
+    setText(markup);
+  };
+
   return (
-    <div className="content">
-      <h1>Ansar Chat</h1>
+    <div>
       <div className={cls.top__panel}>
-        <p>Пользователь: {userFullname}</p>
-        <Button onClick={() => onLogout(() => navigate('/login'))}>Выйти</Button>
+        <img src="ansar.png" alt="ansar" />
+        <div className={cls.user_info_panel}>
+          <p>Пользователь: <span>{userFullname}</span></p>
+          <button onClick={() => onLogout(() => navigate('/login'))}>Выйти</button>
+        </div>
       </div>
       <div className={cls.main__panel}>
         <div className={cls.left__panel}>
           <div className={cls.left__panel__toolbar}>
-            <Button onClick={() => {setMessageType('chat'); setSelectItem(null)}}>Чаты</Button>
-            <Button onClick={() => {setMessageType('user'); setSelectItem(null)}}>Пользователи</Button>
+            <p onClick={() => { setMessageType('chat'); setSelectItem(null) }} className={messageType === "chat" ? cls.active_item : ""}>Группы</p>
+            <p onClick={() => { setMessageType('user'); setSelectItem(null) }} className={messageType === "user" ? cls.active_item : ""}>Пользователи</p>
           </div>
           <div className={cls.left__panel__list}>
             <ChatList
+              chat_type="user"
               items={users}
               onItemClick={handleItemClick}
               is_visible={messageType === 'user'}
@@ -210,31 +245,40 @@ const MainPage = () => {
           </div>
           <div className={cls.left__panel__list}>
             <ChatList
+              chat_type="chat"
               items={chats}
               onItemClick={handleItemClick}
               is_visible={messageType === 'chat'}
               selectItem={selectItem}
             />
           </div>
-        </div>  
+        </div>
         <div className={cls.right__panel}>
           <div className={cls.chat__panel}>
-            <MessageList items={messages} userId={userId}/>
+            {selectItem
+              ? <MessageList items={messages} userId={userId} />
+              : null}
+            <div ref={messagesEndRef} />
           </div>
           <div className={cls.send__panel}>
-            <Textarea
-              rows="4"
-              onChange={(e) => setText(e.target.value)}
-              value={text}>
-            </Textarea>
-            <div className={cls.button__panel}>
-              <Button onClick={handleSendMessage}>Отправить сообщение</Button>
-              <Button onClick={handleSendFile}>Отправить файл</Button>
-            </div>
+            {selectItem
+              ? <div>
+                <Editor
+                  editorState={editorState}
+                  toolbarClassName="toolbar-class"
+                  wrapperClassName="wrapper-class"
+                  editorClassName="editor-class"
+                  onEditorStateChange={onEditorStateChange} />
+                <div className={cls.button__panel}>
+                  <Button onClick={handleSendMessage}>Отправить сообщение</Button>
+                  <Button onClick={handleSendFile}>Отправить файл</Button>
+                </div>
+              </div>
+              : null}
           </div>
         </div>
       </div>
-    </div>  
+    </div>
   )
 }
 

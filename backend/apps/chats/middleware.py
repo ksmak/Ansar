@@ -35,7 +35,7 @@ class TokenAuthMiddleWare:
 
     async def __call__(self, scope, receive, send):
         query_string = scope["query_string"]
-        query_params = query_string.decode()
+        query_params = query_string.decode("utf-8")
         query_dict = parse_qs(query_params)
         token = query_dict["token"][0]
         user = await get_user(token)

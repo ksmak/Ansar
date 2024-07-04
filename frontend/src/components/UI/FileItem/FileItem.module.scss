@@ -1,20 +1,37 @@
 @import '../../../vars';
 .file__box {
+    width: fit-content;
+    margin: 10px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
+    gap: 5px;
+    border: 1px solid lightgray;
+    border-radius: 12px;
+    background-color: white;
+}
+.file__userinfo {
+    color: black;
+    font-size: 10pt;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
 }
 .file__title {
     font-size: 12pt;
-    font-weight: 700;
-    text-align: center;
-    padding: 5px;
 }
 .file__img {
     width: 250px;
     height: 250px;
-    border: 1px solid $primary-color;
 }
 .file__button {
     text-align: center;
-//    background-color: $form-bgcolor;
+}
+.file__owner {
+    background-color: $message-owner-color;
+}
+.file__other {
+    background-color: $message-other-color;
 }

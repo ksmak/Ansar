@@ -1,10 +1,10 @@
 @import '../../../vars';
 .textarea {
-    margin: 5px;
     resize: none;
     color: $primary-color;
     font-size: $font-size;
-    border: 1px solid $border-color;
-    border-radius: 5px;
-    padding: 5px;
+    border: none;
+    border-bottom: 1px solid $border-color;
+    padding: 10px;
+    height: 75%;
 }

@@ -1,11 +1,10 @@
-import React from 'react'
-
+import React from 'react';
 import ChatItem from '../ChatItem/ChatItem';
+import cls from './ChatList.module.scss';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUserGroup, faUser } from '@fortawesome/free-solid-svg-icons';
 
-import cls from './ChatList.module.scss'
-
-
-const ChatList = ({ items, onItemClick, is_visible, selectItem }) => {
+const ChatList = ({ chat_type, items, onItemClick, is_visible, selectItem }) => {
     return (
         is_visible ?
         <div className={cls.chat__list}>
@@ -18,7 +17,10 @@ const ChatList = ({ items, onItemClick, is_visible, selectItem }) => {
                             item={item}
                             selectItem={selectItem}
                         >
-                            {item.title || item.full_name}
+                            {chat_type === "user"
+                            ? <FontAwesomeIcon icon={faUser} /> 
+                            : <FontAwesomeIcon icon={faUserGroup} /> }
+                            <span>{item.title || item.full_name}</span>
                         </ChatItem>
                     )
                 })

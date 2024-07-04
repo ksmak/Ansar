@@ -19,14 +19,10 @@ export const AuthProvider = ({children}) => {
     };
 
     const handleRefreshToken = (token) => {
-      sessionStorage.setItem('access');
+      sessionStorage.setItem('access', token);
     }
   
     const value = {
-      accessToken: sessionStorage.getItem('access'),
-      refreshToken: sessionStorage.getItem('refresh'),
-      userId: parseInt(sessionStorage.getItem('user_id', 0)),
-      userFullname: sessionStorage.getItem('user_fullname'),
       onLogin: handleLogin,
       onLogout: handleLogout,
       onRefresh: handleRefreshToken
