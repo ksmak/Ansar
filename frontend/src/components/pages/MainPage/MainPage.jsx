@@ -199,9 +199,8 @@ const MainPage = () => {
             message_type: messageType,
             id: selectItem.id,
             text: null,
-            filename: resp.data.filename
+            filename: resp.data.filename,
           }
-
           socket.send(JSON.stringify(message));
           setText('');
         })
