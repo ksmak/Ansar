@@ -1,10 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import "./main.scss"
-import LoginPage from './components/pages/LoginPage/LoginPage'
-import MainPage from "./components/pages/MainPage/MainPage";
+import LoginPage from './components/pages/LoginPage';
+import MainPage from "./components/pages/MainPage";
 import { ProtectedRouter } from "./hoc/ProtectedRouter";
 import { AuthProvider } from "./hoc/AuthProvider";
-
 
 function App () {
   return (

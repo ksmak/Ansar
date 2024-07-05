@@ -1,32 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .wrapper-class {
+  padding: 1rem;
   border: 1px solid #ccc;
 }
-
 .editor-class {
-  padding: 5px;
+  padding: 1rem;
   border: 1px solid #ccc;
 }
-
 .toolbar-class {
   border: 1px solid #ccc;
-}
-
-width::-webkit-scrollbar {
-  width: 10px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: #2d93f8;
-  border-radius: 5px;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: #2d93f8;
 }
