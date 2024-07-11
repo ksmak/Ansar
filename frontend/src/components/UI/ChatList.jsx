@@ -1,34 +1,23 @@
 import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserGroup, faUser } from '@fortawesome/free-solid-svg-icons';
+import ChatItem from './ChatItem';
 
-const ChatList = ({ chat_type, items, onItemClick, is_visible, selectItem }) => {
+const ChatList = ({ chatType, items, onItemClick, selectItem, countMsg }) => {
     return (
-        is_visible ?
-        <div className='p-10 overflow-y-auto'>
-            {items.length
-                ? items.map((item) => {
-                    return (
-                        <div
-                            className={['w-full p-5 border-b-2 border-blue-gray-300 hover:cursor-pointer text-sm flex flex-row gap-5 justify-start items-center', 
-                                item === selectItem ? "bg-chatselectcolor": ""
-                            ].join(' ')}
-                            key={item.id}
-                            onClick={() => onItemClick(item)}
-                            item={item}
-                            selectItem={selectItem}
-                        >
-                            {chat_type === "user"
-                            ? <FontAwesomeIcon icon={faUser} /> 
-                            : <FontAwesomeIcon icon={faUserGroup} /> }
-                            <span>{item.title || item.full_name}</span>
-                        </div>
-                    )
-                })
-                : ""
+        <div className='p-5 overflow-y-auto'>
+            {items.length > 0
+                ? items.map(item => (
+                    <ChatItem
+                        key={item.id}
+                        chatType={chatType}
+                        item={item}
+                        onItemClick={onItemClick}
+                        selectItem={selectItem}
+                        count={countMsg[`${chatType}_${item.id}`]}
+                    />
+                ))
+                : null
             }
         </div>
-        : ""
     );
 };
 

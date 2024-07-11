@@ -1,26 +1,18 @@
-import React from 'react';
 import MessageItem from './MessageItem';
-import FileItem from './FileItem';
 
-const MessageList = ({ items, userId }) => {
+const MessageList = ({ items, userId, changeMessage, deleteMessage }) => {
     return (
-        <div>
-            {items.length
-                ? items.map((item) => (
-                    item.file   
-                        ? <FileItem
-                            key={item.id}
-                            item={item}
-                            userId={userId}
-                            filename={decodeURI(item.file.slice(item.file.lastIndexOf('/') + 1))}
-                            path={process.env.REACT_APP_API_HOST + item.file} />
-                        : <MessageItem
-                            key={item.id}
-                            item={item}
-                            userId={userId}
-                        />
-                ))
-                : ""}
+        <div >
+            {items.length > 0 && items.map((item) => (
+                <MessageItem
+                    key={item.id}
+                    item={item}
+                    userId={userId}
+                    changeMessage={changeMessage}
+                    deleteMessage={deleteMessage}
+                />
+            ))
+            }
         </div>
     )
 }

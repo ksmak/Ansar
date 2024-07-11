@@ -42,6 +42,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
         )
 
     def get_messages(self, obj):
-        result = Message.objects.filter(to_user=obj.id)
+        result = Message.objects.filter(state=Message.STATE_ACTIVE).filter(Q(from_user=obj.id) | Q(to_user=obj.id))
         serializer = MessageSerializer(result, many=True)
         return serializer.data

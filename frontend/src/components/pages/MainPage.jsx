@@ -10,22 +10,41 @@ import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import "draft-js/dist/Draft.css";
 
 import { Editor } from "react-draft-wysiwyg";
-import { EditorState, convertToRaw } from 'draft-js';
+import { EditorState, convertToRaw, ContentState } from "draft-js";
 import draftToHtml from 'draftjs-to-html';
+import htmlToDraft from "html-to-draftjs";
 
-import { Alert, Spinner, Typography } from "@material-tailwind/react";
+import {
+  Alert,
+  Spinner,
+  Typography,
+  Button,
+  Dialog,
+  DialogHeader,
+  DialogBody,
+  DialogFooter,
+  Badge,
+} from "@material-tailwind/react";
 
 const MainPage = () => {
   const navigate = useNavigate();
   const { onLogout } = useAuth();
+  const [countChatMsg, setCountChatMsg] = useState([]);
+  const [countUserMsg, setCountUserMsg] = useState([]);
+  const [editItem, setEditItem] = useState(null);
+  const [deleteItem, setDeleteItem] = useState(null);
   const [socket, setSocket] = useState(null);
   const [users, setUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [selectItem, setSelectItem] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
+  const [editText, setEditText] = useState('');
   const [messageType, setMessageType] = useState('chat');
   const [editorState, setEditorState] = useState(
+    () => EditorState.createEmpty(),
+  );
+  const [editorEditState, setEditorEditState] = useState(
     () => EditorState.createEmpty(),
   );
   const [filename, setFilename] = useState('');
@@ -38,9 +57,55 @@ const MainPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const calcUserCountMsg = () => {
+    let result = {};
+    let total = 0;
+    users.length > 0 && users.forEach(item => {
+      let messages = item.messages.filter(msg => msg.from_user !== userId && msg.to_user === userId && msg.readers.indexOf(reader => reader.user === userId) === -1);
+      result = {
+        ...result,
+        [`user_${item.id}`]: messages.length,
+      };
+      total += messages.length;
+    });
+    result = {
+      ...result,
+      "total_count": total,
+    }
+    return result;
+  };
+
+  const calcChatCountMsg = () => {
+    let result = {};
+    let total = 0;
+    chats.length > 0 && chats.forEach(item => {
+      let messages = item.messages.filter(msg => msg.from_user !== userId && !!msg.to_chat && msg.readers.indexOf(reader => reader.user === userId) === -1);
+      result = {
+        ...result,
+        [`chat_${item.id}`]: messages.length,
+      };
+      total += messages.length;
+    });
+    result = {
+      ...result,
+      "total_count": total,
+    }
+    return result;
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, chats, users]);
+
+  useEffect(() => {
+    if (chats.length > 0) setCountChatMsg(calcChatCountMsg());
+    // eslint-disable-next-line
+  }, [chats]);
+
+  useEffect(() => {
+    if (users.length > 0) setCountUserMsg(calcUserCountMsg());
+    // eslint-disable-next-line
+  }, [users]);
 
   const createSocket = () => {
     let accessToken = sessionStorage.getItem('access');
@@ -74,21 +139,25 @@ const MainPage = () => {
         case "new_message":
           if (data.message_type === "user") {
             setUsers(prev => {
-              const index = prev.findIndex(item => (item.id === data.message.to_user));
               let new_arr = [...prev];
-              const msg = new_arr[index].messages.find(item => item.id === data.message.id);
-              if (!msg) {
-                new_arr[index].messages.push(data.message);
+              const index = prev.findIndex(item => (item.id === data.message.from_user));
+              if (index >= 0) {
+                const msg = new_arr[index].messages.find(item => item.id === data.message.id);
+                if (!msg) {
+                  new_arr[index].messages.push(data.message);
+                }
               }
               return new_arr;
             });
           } else {
             setChats(prev => {
-              const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
-              const msg = new_arr[index].messages.find(item => item.id === data.message.id);
-              if (!msg) {
-                new_arr[index].messages.push(data.message);
+              const index = prev.findIndex(item => item.id === data.message.to_chat);
+              if (index >= 0) {
+                const msg = new_arr[index].messages.find(item => item.id === data.message.id);
+                if (!msg) {
+                  new_arr[index].messages.push(data.message);
+                }
               }
               return new_arr;
             });
@@ -101,36 +170,20 @@ const MainPage = () => {
               const index = prev.findIndex(item => item.id === data.message.to_user);
               let new_arr = [...prev];
               const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].messages.splice(i, 1, data.message);
-              return new_arr;
+              if (i >= 0) {
+                new_arr[index].messages.splice(i, 1, data.message);
+                return new_arr;
+              }
             });
           } else {
             setChats(prev => {
               const index = prev.findIndex(item => item.id === data.message.to_chat);
               let new_arr = [...prev];
               const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].messages.splice(i, 1, data.message);
-              return new_arr;
-            });
-          };
-          break;
-
-        case "remove_message":
-          if (data.message_type === "user") {
-            setUsers(prev => {
-              const index = prev.findIndex(item => item.id === data.message.to_user);
-              let new_arr = [...prev];
-              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].messages.splice(i, 1);
-              return new_arr;
-            });
-          } else {
-            setChats(prev => {
-              const index = prev.findIndex(item => item.id === data.message.to_chat);
-              let new_arr = [...prev];
-              const i = new_arr[index].messages.findIndex(item => item.id === data.message.id);
-              new_arr[index].messages.splice(i, 1);
-              return new_arr;
+              if (i >= 0) {
+                new_arr[index].messages.splice(i, 1, data.message);
+                return new_arr;
+              }
             });
           };
           break;
@@ -232,6 +285,52 @@ const MainPage = () => {
     setText(markup);
   };
 
+  const onEditorEditStateChange = (editorEditState) => {
+    setEditorEditState(editorEditState);
+    const markup = draftToHtml(convertToRaw(editorEditState.getCurrentContent()));
+    setEditText(markup);
+  }
+
+  const handleOpenEditMessageDialog = (message_id) => {
+    setEditItem(message_id);
+    const msg = selectItem.messages.find(item => item.id === message_id);
+    const blocksFromHtml = htmlToDraft(msg.text);
+    const { contentBlocks, entityMap } = blocksFromHtml;
+    const contentState = ContentState.createFromBlockArray(contentBlocks, entityMap);
+    setEditorEditState(EditorState.createWithContent(contentState));
+  }
+
+  const handleEditMessage = () => {
+    const message = {
+      message: "edit_message",
+      message_type: messageType,
+      message_id: editItem,
+      text: editText,
+    }
+
+    socket.send(JSON.stringify(message));
+
+    setEditText('');
+    setEditorEditState(() => EditorState.createEmpty());
+    setEditItem(null);
+  };
+
+  const handleOpenDeleteMessageDialog = (message_id) => {
+    setDeleteItem(message_id);
+  }
+
+  const handleDeleteMessage = () => {
+    const message = {
+      message: "delete_message",
+      message_type: messageType,
+      message_id: deleteItem,
+    }
+
+    socket.send(JSON.stringify(message));
+
+    setDeleteItem(null);
+  }
+
   return (
     <div className="h-[calc(100vh-6rem)]">
       <div className="absolute opacity-55 w-full">
@@ -249,6 +348,55 @@ const MainPage = () => {
           </Typography>
         </Alert>
       </div>
+      <div className="absolute w-full">
+        <Dialog open={editItem !== null} handler={() => setEditItem(null)}>
+          <DialogHeader>...</DialogHeader>
+          <DialogBody className="text-center">
+            <Editor
+              editorStyle={{ height: '5rem' }}
+              editorState={editorEditState}
+              toolbarClassName="toolbar-class"
+              wrapperClassName="wrapper-class"
+              editorClassName="editor-class"
+              onEditorStateChange={onEditorEditStateChange}
+            />
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              variant="text"
+              color="red"
+              onClick={() => setEditItem(null)}
+              className="mr-1"
+            >
+              <span>Отмена</span>
+            </Button>
+            <Button variant="gradient" color="blue" onClick={handleEditMessage}>
+              <span>Сохранить</span>
+            </Button>
+          </DialogFooter>
+        </Dialog>
+      </div>
+      <div className="absolute w-full">
+        <Dialog open={deleteItem !== null} handler={() => setDeleteItem(null)}>
+          <DialogHeader>...</DialogHeader>
+          <DialogBody className="text-center">
+            Удалить данное сообщение?
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              variant="text"
+              color="red"
+              onClick={() => setDeleteItem(null)}
+              className="mr-1"
+            >
+              <span>Отмена</span>
+            </Button>
+            <Button variant="gradient" color="red" onClick={handleDeleteMessage}>
+              <span>Удалить</span>
+            </Button>
+          </DialogFooter>
+        </Dialog>
+      </div>
       <div className="h-24 bg-white flex flex-row justify-between border-blue-gray-900 border-b-2">
         <img className="h-20 pl-10 self-center" src="ansar.png" alt="ansar" />
         <div className="flex flex-row gap-2 self-end pr-4 pb-2 font-mono text-black">
@@ -259,32 +407,56 @@ const MainPage = () => {
       <div className="h-full bg-white flex flex-row justify-between">
         <div className="h-full w-1/4 border-r-2 border-blue-gray-900">
           <div className="flex flex-row justify-between p-4">
-            <p className="text-primary underline hover:cursor-pointer font-bold" onClick={() => { setMessageType('chat'); setSelectItem(null) }}>Группы</p>
-            <p className="text-primary underline hover:cursor-pointer font-bold" onClick={() => { setMessageType('user'); setSelectItem(null) }}>Пользователи</p>
+            {!!countChatMsg?.total_count
+              ? <Badge
+                className="text-xs"
+                content={countChatMsg.total_count}>
+                <Typography
+                  className="text-primary underline hover:cursor-pointer font-bold"
+                  onClick={() => { setMessageType('chat'); setSelectItem(null) }}>
+                  Группы
+                </Typography>
+              </Badge>
+              : <Typography
+                className="text-primary underline hover:cursor-pointer font-bold"
+                onClick={() => { setMessageType('chat'); setSelectItem(null) }}>
+                Группы
+              </Typography>}
+            {!!countUserMsg?.total_count
+              ? <Badge
+                className="text-xs"
+                content={countUserMsg.total_count}>
+                <Typography
+                  className="text-primary underline hover:cursor-pointer font-bold"
+                  onClick={() => { setMessageType('user'); setSelectItem(null) }}>
+                  Пользователи
+                </Typography>
+              </Badge>
+              : <Typography
+                className="text-primary underline hover:cursor-pointer font-bold"
+                onClick={() => { setMessageType('user'); setSelectItem(null) }}>
+                Пользователи
+              </Typography>}
           </div>
           <div>
             <ChatList
-              chat_type="user"
-              items={users}
+              chatType={messageType}
+              items={messageType === 'user' ? users : chats}
               onItemClick={handleItemClick}
-              is_visible={messageType === 'user'}
               selectItem={selectItem}
-            />
-          </div>
-          <div>
-            <ChatList
-              chat_type="chat"
-              items={chats}
-              onItemClick={handleItemClick}
-              is_visible={messageType === 'chat'}
-              selectItem={selectItem}
+              countMsg={messageType === 'user' ? countUserMsg : countChatMsg}
             />
           </div>
         </div>
         <div className="h-full w-3/4">
           <div className="h-3/4 overflow-auto">
             {selectItem
-              ? <MessageList items={messages} userId={userId} />
+              ? <MessageList
+                items={messages}
+                userId={userId}
+                changeMessage={handleOpenEditMessageDialog}
+                deleteMessage={handleOpenDeleteMessageDialog}
+              />
               : null}
             <div ref={messagesEndRef} />
           </div>
@@ -308,8 +480,8 @@ const MainPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 
-export default MainPage
+export default MainPage;

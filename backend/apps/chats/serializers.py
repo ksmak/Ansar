@@ -8,15 +8,20 @@ from auths.models import CustomUser
 
 class ReaderSerializer(serializers.ModelSerializer):
     """Reader serializer model."""
+    fullname = serializers.SerializerMethodField()
+    
     class Meta:
         model = Reader
         fields = (
             'id',
-            'message',
             'user',
+            'fullname',
             'read_date'
         )
-
+    
+    def get_fullname(self, obj):
+        result = CustomUser.objects.get(id=obj.user.id)
+        return result.full_name
 
 class MessageSerializer(serializers.ModelSerializer):
     """Message serializer model."""
@@ -27,12 +32,15 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = (
             'id',
+            'state',
             'from_user',
             'to_user',
             'to_chat',
             'text',
             'file',
             'creation_date',
+            'change_date',
+            'delete_date',
             'readers',
             'fullname',
         )
@@ -61,7 +69,7 @@ class ChatSerializer(serializers.ModelSerializer):
         )
 
     def get_messages(self, obj):
-        result = Message.objects.filter(to_chat=obj.id)
+        result = Message.objects.filter(state=Message.STATE_ACTIVE, to_chat=obj.id)
         serializer = MessageSerializer(result, many=True)
         return serializer.data
 

@@ -174,6 +174,36 @@ def read_message(
 
 
 @shared_task
+def change_message(
+    group_name: str,
+    message_type: str,
+    user_id: int,
+    message_id: int,
+    text: str,
+):
+    from_user = get_user_model().objects.get(id=user_id)
+
+    message = Message.objects.get(id=message_id, from_user=from_user)
+    message.text = text
+    message.change_date = timezone.now()
+    message.save()
+
+    serializer = MessageSerializer(message)
+
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            "type": "chat_message",
+            "category": "change_message",
+            "message_type": message_type,
+            "message": serializer.data,
+        }
+    )
+
+
+@shared_task
 def delete_message(
     group_name: str,
     message_type: str,
@@ -183,7 +213,13 @@ def delete_message(
     from_user = get_user_model().objects.get(id=user_id)
 
     message = Message.objects.get(id=message_id, from_user=from_user)
-    message.delete()
+    message.state = Message.STATE_DELETE
+    message.delete_date = timezone.now()
+    message.save()
+
+    Reader.objects.filter(message=message).delete()
+
+    serializer = MessageSerializer(message)
 
     channel_layer = get_channel_layer()
 
@@ -191,10 +227,8 @@ def delete_message(
         group_name,
         {
             "type": "chat_message",
-            "category": "remove_message",
+            "category": "change_message",
             "message_type": message_type,
-            "message_id": message_id,
-            "user_id": user_id,
-            "delete_date": timezone.now(),
+            "message": serializer.data,
         }
     )

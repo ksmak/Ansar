@@ -32,9 +32,6 @@ const LoginPage = () => {
         <div>
             <form
                 className='w-96 ml-auto mr-auto mt-32 p-4 border-2 border-white bg-formbgcolor rounded-md'>
-                <h2 className='font-mono text-xl tracking-wide uppercase text-white font-bold'>
-                    Вход в систему
-                </h2>
                 <div
                     className='flex flex-col mb-5'
                 >

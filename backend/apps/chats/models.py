@@ -44,6 +44,17 @@ class Chat(models.Model):
 
 class Message(models.Model):
     """Message model."""
+    STATE_ACTIVE = 1
+    STATE_DELETE = 2
+    STATES = (
+     (STATE_ACTIVE, 'активный'),
+     (STATE_DELETE, 'удален')   
+    )
+    state = models.PositiveSmallIntegerField(
+        verbose_name='состояние',
+        choices=STATES,
+        default=STATE_ACTIVE
+    )
     from_user = models.ForeignKey(
         verbose_name='отправитель',
         to=User,
@@ -79,6 +90,18 @@ class Message(models.Model):
     creation_date = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
+    )
+
+    change_date = models.DateTimeField(
+        verbose_name='дата изменения',
+        null=True,
+        blank=True
+    )
+
+    delete_date = models.DateTimeField(
+        verbose_name='дата удаления',
+        null=True,
+        blank=True
     )
 
     class Meta:

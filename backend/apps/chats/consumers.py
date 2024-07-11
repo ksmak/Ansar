@@ -13,6 +13,7 @@ from .tasks import (
     delete_chat,
     send_message,
     read_message,
+    change_message,
     delete_message,
 )
 
@@ -51,25 +52,25 @@ class ChatConsumer(JsonWebsocketConsumer):
                 title=content['title'],
                 is_group=content['is_group'],
                 admins=content['admins'],
-                users=content['users']
+                users=content['users'],
             )
         elif content["message"] == 'join_chat':
             update_chat.delay(
                self.group_name,
                self.user.id,
-               True
+               True,
             )
         elif content["message"] == "quit_chat":
             update_chat.delay(
                self.group_name,
                self.user.id,
-               False
+               False,
             )
         elif content["message"] == "delete_chat":
             delete_chat.delay(
                 self.group_name,
                 self.user.id,
-                content["chat_id"]
+                content["chat_id"],
             )
         elif content["message"] == "send_message":
             send_message.delay(
@@ -78,21 +79,29 @@ class ChatConsumer(JsonWebsocketConsumer):
                content["id"],
                self.user.id,
                content['text'],
-               content['filename']
+               content['filename'],
             )
         elif content["message"] == "read_message":
             read_message.delay(
                self.group_name,
                content["message_type"],
                self.user.id,
-               content['message_id']
+               content['message_id'],
+            )
+        elif content["message"] == "edit_message":
+            change_message.delay(
+               self.group_name,
+               content["message_type"],
+               self.user.id,
+               content['message_id'],
+               content['text'],
             )
         elif content["message"] == "delete_message":
             delete_message.delay(
                self.group_name,
                content["message_type"],
                self.user.id,
-               content['message_id']
+               content['message_id'],
             )
 
     def chat_message(self, event):
