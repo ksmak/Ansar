@@ -1,6 +1,6 @@
 import { Tooltip, Typography } from "@material-tailwind/react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faCheckDouble } from '@fortawesome/free-solid-svg-icons';
 import moment from 'moment';
 import 'moment/locale/ru';
 
@@ -24,7 +24,7 @@ const CheckReader = ({ readers }) => {
             className="hover:cursor-pointer"
             content={content}
         >
-            <FontAwesomeIcon icon={faCheck} />
+            <FontAwesomeIcon className='text-formbgcolor' icon={faCheckDouble} />
         </Tooltip>
     </div>
 }

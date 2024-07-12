@@ -31,6 +31,7 @@ DJANGO_APPS = [
     'django_celery_results',
     'django_celery_beat',
     'channels',
+    'django_cleanup',
 ]
 
 PROJECT_APPS = [

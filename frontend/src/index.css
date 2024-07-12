@@ -6,10 +6,13 @@
   padding: 1rem;
   border: 1px solid #ccc;
 }
+
 .editor-class {
+  background: white;
   padding: 1rem;
   border: 1px solid #ccc;
 }
+
 .toolbar-class {
   border: 1px solid #ccc;
 }

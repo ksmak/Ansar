@@ -1,3 +1,4 @@
+import { Button } from '@material-tailwind/react';
 import FileIcon from './FileIcon';
 
 const FileItem = ({ item }) => {
@@ -8,8 +9,10 @@ const FileItem = ({ item }) => {
         <div className='text-primary flex flex-col gap-3 items-center'>
             <p className="text-lg pt-2">{filename}</p>
             <FileIcon filename={filename} path={path} />
-            <button
-                className='font-mono p-2 text-white bg-formbgcolor border border-blue-gray-400 rounded-lg self-center w-fit'
+            <Button
+                variant='gradient'
+                color='blue'
+                size='sm'
                 onClick={() => {
                     let ref = document.createElement('a');
                     ref.href = path;
@@ -17,7 +20,7 @@ const FileItem = ({ item }) => {
                 }}
             >
                 Загрузить
-            </button>
+            </Button>
         </div>
     )
 }

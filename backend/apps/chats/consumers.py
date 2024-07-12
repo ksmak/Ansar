@@ -8,9 +8,7 @@ from channels.generic.websocket import JsonWebsocketConsumer
 
 # Project
 from .tasks import (
-    create_chat,
     update_chat,
-    delete_chat,
     send_message,
     read_message,
     change_message,
@@ -45,16 +43,7 @@ class ChatConsumer(JsonWebsocketConsumer):
         )
 
     def receive_json(self, content, **kwargs):
-        if content["message"] == 'create_chat':
-            create_chat.delay(
-                group_name=self.group_name,
-                user_id=self.user.id,
-                title=content['title'],
-                is_group=content['is_group'],
-                admins=content['admins'],
-                users=content['users'],
-            )
-        elif content["message"] == 'join_chat':
+        if content["message"] == 'join_chat':
             update_chat.delay(
                self.group_name,
                self.user.id,
@@ -65,12 +54,6 @@ class ChatConsumer(JsonWebsocketConsumer):
                self.group_name,
                self.user.id,
                False,
-            )
-        elif content["message"] == "delete_chat":
-            delete_chat.delay(
-                self.group_name,
-                self.user.id,
-                content["chat_id"],
             )
         elif content["message"] == "send_message":
             send_message.delay(

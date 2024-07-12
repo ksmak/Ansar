@@ -13,41 +13,6 @@ from .serializers import (
 
 
 @shared_task
-def create_chat(
-    group_name: str,
-    user_id: int,
-    title: str,
-    is_group: str,
-    admins: list[int],
-    users: list[int]
-):
-    user = get_user_model().objects.get(
-        id=user_id
-    )
-
-    chat = Chat.objects.create(
-        title=title,
-        is_group=is_group,
-    )
-    chat.admins.set([*admins, user.id])
-    chat.users.set([*users, user.id])
-    chat.save()
-
-    serializer = ChatSerializer(chat)
-
-    channel_layer = get_channel_layer()
-
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "new_chat",
-            "chat": serializer.data
-        }
-    )
-
-
-@shared_task
 def update_chat(group_name: str, user_id: int, is_join: bool):
     user = get_user_model().objects.get(id=user_id)
 
@@ -73,29 +38,6 @@ def update_chat(group_name: str, user_id: int, is_join: bool):
                 "chat": serializer.data
             }
         )
-
-
-@shared_task
-def delete_chat(
-    group_name: str,
-    user_id: int,
-    chat_id: int
-):
-    user = get_user_model().objects.get(id=user_id)
-
-    chat = Chat.objects.get(id=chat_id, admins__in=[user])
-    chat.delete()
-
-    channel_layer = get_channel_layer()
-
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "remove_chat",
-            "chat_id": chat_id
-        }
-    )
 
 
 @shared_task
@@ -153,7 +95,7 @@ def read_message(
 
     message = Message.objects.get(id=message_id)
 
-    Reader.objects.create(
+    Reader.objects.get_or_create(
         message=message,
         user=user
     )
