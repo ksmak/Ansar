@@ -37,25 +37,26 @@ class ChatConsumer(JsonWebsocketConsumer):
             self.group_name, self.channel_name
         )
 
+        update_chat.delay(
+            self.group_name,
+            self.user.id,
+            True,
+        )
+
     def disconnect(self, close_code):
+        update_chat.delay(
+            self.group_name,
+            self.user.id,
+            False,
+        )
+        
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name, self.channel_name
         )
 
+
     def receive_json(self, content, **kwargs):
-        if content["message"] == 'join_chat':
-            update_chat.delay(
-               self.group_name,
-               self.user.id,
-               True,
-            )
-        elif content["message"] == "quit_chat":
-            update_chat.delay(
-               self.group_name,
-               self.user.id,
-               False,
-            )
-        elif content["message"] == "send_message":
+        if content["message"] == "send_message":
             send_message.delay(
                self.group_name,
                content["message_type"],

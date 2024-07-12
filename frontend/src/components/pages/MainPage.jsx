@@ -129,10 +129,13 @@ const MainPage = () => {
       const data = JSON.parse(e.data);
       switch (data.category) {
         case "change_chat":
-          setChats(prev => {
-            const index = prev.findIndex(item => item.id === data.chat.id);
+          setUsers(prev => {
             let new_arr = [...prev];
-            new_arr.splice(index, 1, data.chat);
+            const index = prev.findIndex(item => item.id === data.online_user.user);
+            if (index >= 0) {
+              new_arr[index].online.is_active = data.online_user.is_active;
+              new_arr[index].online.last_date = data.online_user.last_date;
+            }
             return new_arr;
           });
           break;

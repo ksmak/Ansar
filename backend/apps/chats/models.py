@@ -87,30 +87,19 @@ class Message(models.Model):
         null=True,
         blank=True
     )
-    creation_date = models.DateTimeField(
-        verbose_name='дата создания',
-        auto_now_add=True
-    )
-
-    change_date = models.DateTimeField(
+    
+    modified_date = models.DateTimeField(
         verbose_name='дата изменения',
-        null=True,
-        blank=True
-    )
-
-    delete_date = models.DateTimeField(
-        verbose_name='дата удаления',
-        null=True,
-        blank=True
+        auto_now=True
     )
 
     class Meta:
         verbose_name = 'сообщение'
         verbose_name_plural = 'сообщения'
-        ordering = ('creation_date', )
+        ordering = ('modified_date', )
 
     def __str__(self) -> str:
-        return f"Message[{self.from_user} {self.creation_date}]: {self.text}" # noqa
+        return f"Message[{self.from_user} {self.modified_date}]: {self.text}" # noqa
 
 
 class Reader(models.Model):
@@ -140,3 +129,28 @@ class Reader(models.Model):
 
     def __str__(self) -> str:
         return f"User:{self.user.username}, message:{self.message}, read date:{self.read_date}" # noqa
+
+
+class OnlineUser(models.Model):
+    """Online users."""
+    user = models.OneToOneField(
+        verbose_name="пользователь",
+        to=User,
+        on_delete=models.CASCADE
+    )
+    is_active = models.BooleanField(
+        verbose_name='активность',
+        default=True
+    )
+    last_date = models.DateTimeField(
+        verbose_name="дата последнего входа",
+        auto_now=True
+    )
+
+    class Meta:
+        verbose_name = 'онлайн пользователи'
+        verbose_name_plural = 'онлайн пользователи'
+        ordering = ('-last_date', )
+
+    def __str__(self) -> str:
+        return f"User:{self.user.username}, last date:{self.last_date}" # noqa

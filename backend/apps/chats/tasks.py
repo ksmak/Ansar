@@ -5,39 +5,33 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
 
-from .models import Chat, Message, Reader
+from .models import Chat, Message, Reader, OnlineUser
 from .serializers import (
-    ChatSerializer,
     MessageSerializer,
+    OnlineUserSerializer
 )
 
 
 @shared_task
-def update_chat(group_name: str, user_id: int, is_join: bool):
+def update_chat(group_name: str, user_id: int, is_active: bool):
     user = get_user_model().objects.get(id=user_id)
 
-    chats = Chat.objects.filter(users__in=[user])
+    online_user = OnlineUser.objects.get_or_create(user=user)[0]
+    online_user.is_active = is_active
+    online_user.save()
+
+    serializer = OnlineUserSerializer(online_user)
 
     channel_layer = get_channel_layer()
 
-    for chat in chats:
-        if is_join:
-            chat.actives.add(user)
-        else:
-            chat.actives.remove(user)
-
-        chat.save()
-
-        serializer = ChatSerializer(chat)
-
-        async_to_sync(channel_layer.group_send)(
-            group_name,
-            {
-                "type": "chat_message",
-                "category": "change_chat",
-                "chat": serializer.data
-            }
-        )
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            "type": "chat_message",
+            "category": "change_chat",
+            "online_user": serializer.data,
+        }
+    )
 
 
 @shared_task
@@ -127,7 +121,6 @@ def change_message(
 
     message = Message.objects.get(id=message_id, from_user=from_user)
     message.text = text
-    message.change_date = timezone.now()
     message.save()
 
     serializer = MessageSerializer(message)
@@ -156,7 +149,6 @@ def delete_message(
 
     message = Message.objects.get(id=message_id, from_user=from_user)
     message.state = Message.STATE_DELETE
-    message.delete_date = timezone.now()
     message.save()
 
     Reader.objects.filter(message=message).delete()

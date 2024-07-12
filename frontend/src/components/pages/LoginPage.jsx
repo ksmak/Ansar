@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@material-tailwind/react";
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../api/index';
 
@@ -7,15 +8,11 @@ import api from '../../api/index';
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-
-    const [username, setUsername] = useState('');
+    const [username, setUsername] = useState(localStorage.getItem('username'));
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-
     const { onLogin } = useAuth();
-
     let fromPage = location.state?.from?.pathname || '/';
-
     const onSignIn = (e) => {
         e.preventDefault();
 
@@ -32,16 +29,19 @@ const LoginPage = () => {
         <div>
             <form
                 className='w-96 ml-auto mr-auto mt-32 p-4 border-2 border-white bg-formbgcolor rounded-md'>
+                <div className='w-full pb-5'>
+                    <img className="h-20 ml-auto mr-auto self-center" src="ansar.png" alt="ansar" />
+                </div>
                 <div
                     className='flex flex-col mb-5'
                 >
                     <label
-                        className='m-1 font-mono text-white'
+                        className='m-1 text-white'
                         htmlFor='username'>
                         Имя пользователя
                     </label>
                     <input
-                        className='p-1 font-mono text-primary rounded'
+                        className='p-1 text-primary rounded'
                         type='text'
                         id='username'
                         value={username}
@@ -52,24 +52,26 @@ const LoginPage = () => {
                     className='flex flex-col'
                 >
                     <label
-                        className='m-1 font-mono text-white'
+                        className='m-1 text-white'
                         htmlFor='password'>Пароль</label>
                     <input
-                        className='p-1 font-mono text-primary rounded'
+                        className='p-1 text-primary rounded'
                         type='password'
                         id='password'
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <p className='font-mono text-red-600 mt-2'>{error}</p>
+                <p className='text-red-600 mt-2'>{error}</p>
                 <div
                     className='flex flex-row justify-center mt-3'>
-                    <button
-                        className='font-mono p-2 uppercase font-bold text-sm text-white bg-transparent rounded-md border-2 border-white hover:bg-white hover:text-formbgcolor'
+                    <Button
+                        variant='outlined'
+                        color='white'
+                        size='md'
                         onClick={onSignIn}>
                         Войти
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>

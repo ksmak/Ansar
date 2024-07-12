@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 # Project
-from .models import Message, Chat, Reader
+from .models import Message, Chat, Reader, OnlineUser
 from auths.models import CustomUser
 
 
@@ -38,9 +38,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'to_chat',
             'text',
             'file',
-            'creation_date',
-            'change_date',
-            'delete_date',
+            'modified_date',
             'readers',
             'fullname',
         )
@@ -73,6 +71,7 @@ class ChatSerializer(serializers.ModelSerializer):
         serializer = MessageSerializer(result, many=True)
         return serializer.data
 
+
 class ChatCreateSerializer(serializers.Serializer):
     """Serializer for create Chat."""
     id = serializers.ReadOnlyField()
@@ -80,3 +79,15 @@ class ChatCreateSerializer(serializers.Serializer):
     users = serializers.ListField(
         child=serializers.IntegerField()
     )
+
+
+class OnlineUserSerializer(serializers.ModelSerializer):
+    """Serializer for online users."""
+
+    class Meta:
+        model = OnlineUser
+        fields = (
+            'user',
+            'is_active',
+            'last_date'
+        )

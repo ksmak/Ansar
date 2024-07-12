@@ -8,7 +8,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 # Project
 from chats.models import Message
-from chats.serializers import MessageSerializer
+from chats.serializers import MessageSerializer, OnlineUserSerializer
 
 
 User = get_user_model()
@@ -23,6 +23,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             "refresh": data["refresh"],
             "id": self.user.id,
             "full_name": self.user.full_name,
+            "username": self.user.username,
         }
 
 
@@ -30,6 +31,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     """Custom user serializer."""
     # messages = MessageSerializer(source="user_messages", many=True)
     messages = serializers.SerializerMethodField()
+    online = OnlineUserSerializer(source="onlineuser")
 
     class Meta:
         model = User
@@ -38,7 +40,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'username',
             'full_name',
             'is_active',
-            'messages'
+            'messages',
+            'online'
         )
 
     def get_messages(self, obj):
