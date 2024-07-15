@@ -6,7 +6,7 @@ import ChatList from "../UI/ChatList";
 
 const PanelLeft = ({ messageType, setMessageType, selectItem, setSelectItem, handleItemClick, countChatMsg, countUserMsg, users, chats }) => {
     return (
-        <div className="h-full w-1/4 border-r-2 border-bordercolor">
+        <div className="h-full w-1/4 border-r-2 border-bordercolor flex flex-col">
             <div className="flex flex-row justify-between p-4">
                 {!!countChatMsg?.total_count
                     ? <Badge
@@ -39,7 +39,7 @@ const PanelLeft = ({ messageType, setMessageType, selectItem, setSelectItem, han
                         Пользователи
                     </Typography>}
             </div>
-            <div>
+            <div className="grow overflow-y-auto">
                 <ChatList
                     chatType={messageType}
                     items={messageType === 'user' ? users : chats}
