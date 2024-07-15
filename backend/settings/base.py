@@ -4,6 +4,9 @@ import os
 from pathlib import Path
 import pygments.formatters
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv('.env')
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -79,11 +82,11 @@ ASGI_APPLICATION = "settings.asgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_NAME'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
@@ -126,7 +129,8 @@ SIMPLE_JWT = {
 
 # Cors headers
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",
+    "http://localhost",
+    "http://10.145.104.3",
     "http://localhost:3000",
     "http://10.145.104.243:3000"
 ]

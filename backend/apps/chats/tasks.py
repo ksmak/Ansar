@@ -166,3 +166,7 @@ def delete_message(
             "message": serializer.data,
         }
     )
+
+@shared_task
+def clean_chat():
+    Message.objects.filter(modified_date__lt=timezone.now() - timezone.timedelta(days=1)).delete()
