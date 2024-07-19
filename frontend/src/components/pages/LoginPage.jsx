@@ -7,12 +7,19 @@ import api from '../../api/index';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+
     const location = useLocation();
+
     const [username, setUsername] = useState(localStorage.getItem('username'));
+
     const [password, setPassword] = useState('');
+
     const [error, setError] = useState('');
+
     const { onLogin } = useAuth();
+
     let fromPage = location.state?.from?.pathname || '/';
+
     const onSignIn = (e) => {
         e.preventDefault();
 
@@ -20,6 +27,7 @@ const LoginPage = () => {
             .then((resp) => {
                 onLogin(resp.data, () => navigate(fromPage, { replace: true }));
             })
+
             .catch(() => {
                 setError('Ошибка! Имя пользователя или пароль не верны.');
             })
@@ -78,4 +86,4 @@ const LoginPage = () => {
     );
 };
 
-export default LoginPage
+export default LoginPage;

@@ -3,19 +3,24 @@ import { createContext } from 'react';
 
 export const AuthContext = createContext(null);
 
-
 export const AuthProvider = ({ children }) => {
   const handleLogin = (data, cb) => {
     sessionStorage.setItem('access', data.access);
+
     sessionStorage.setItem('refresh', data.refresh);
+
     sessionStorage.setItem('user_id', data.id);
+
     sessionStorage.setItem('user_fullname', data.full_name);
+
     localStorage.setItem('username', data.username);
+
     cb();
   };
 
   const handleLogout = (cb) => {
     sessionStorage.clear();
+
     cb();
   };
 
@@ -26,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     onLogin: handleLogin,
     onLogout: handleLogout,
-    onRefresh: handleRefreshToken
+    onRefresh: handleRefreshToken,
   };
 
   return (
@@ -34,4 +39,4 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}

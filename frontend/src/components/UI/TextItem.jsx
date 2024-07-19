@@ -4,8 +4,11 @@ import htmlToDraft from "html-to-draftjs";
 
 const TextItem = ({ item }) => {
     const blocksFromHtml = htmlToDraft(item.text);
+
     const { contentBlocks, entityMap } = blocksFromHtml;
+
     const contentState = ContentState.createFromBlockArray(contentBlocks, entityMap);
+    
     const editorState = EditorState.createWithContent(contentState);
 
     return (

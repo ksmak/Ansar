@@ -14,7 +14,7 @@ const DialogDeleteMessage = ({ deleteItem, setDeleteItem, handleDeleteMessage })
                 open={deleteItem !== null}
                 handler={() => setDeleteItem(null)}
             >
-                <DialogHeader></DialogHeader>
+                <DialogHeader>...</DialogHeader>
                 <DialogBody className="text-center">
                     Удалить данное сообщение?
                 </DialogBody>

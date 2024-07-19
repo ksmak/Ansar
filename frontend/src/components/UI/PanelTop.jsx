@@ -4,7 +4,9 @@ import { Button } from "@material-tailwind/react";
 
 const PanelTop = () => {
     const navigate = useNavigate();
+
     const { onLogout } = useAuth();
+    
     const userFullname = sessionStorage.getItem('user_fullname');
 
     return (

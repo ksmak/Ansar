@@ -4,7 +4,18 @@ import {
 import MessageList from "../UI/MessageList";
 import { Editor } from "react-draft-wysiwyg";
 
-const PanelRight = ({ messages, userId, handleOpenEditMessageDialog, handleOpenDeleteMessageDialog, handleSendMessage, handleSendFile, editorState, selectItem, messagesEndRef, onEditorStateChange }) => {
+const PanelRight = ({ 
+    messages, 
+    userId, 
+    handleOpenEditMessageDialog, 
+    handleOpenDeleteMessageDialog, 
+    handleSendMessage, 
+    handleSendFile, 
+    editorState, 
+    selectItem, 
+    messagesEndRef, 
+    onEditorStateChange 
+}) => {
     return (
         <div className="h-full w-3/4 bg-blue-gray-50">
             {selectItem && <div className="h-full flex flex-col">

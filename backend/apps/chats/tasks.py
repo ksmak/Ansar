@@ -86,7 +86,7 @@ def send_message(
         "category": "new_message",
         "message_type": message_type,
         "message": serializer.data,
-         "uuid": uuid,
+        "uuid": uuid,
     })
 
 

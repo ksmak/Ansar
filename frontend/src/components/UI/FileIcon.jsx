@@ -3,6 +3,7 @@ import { faFileWord, faFileExcel, faFile, faFileArchive } from '@fortawesome/fre
 
 const FileIcon = ({ filename, path }) => {
     const fileExt = filename.split('.').pop().toLowerCase();
+    
     return (
         <div>
             {fileExt === "xls" || fileExt === "xlsx"

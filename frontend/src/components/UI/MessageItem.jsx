@@ -23,4 +23,4 @@ const MessageItem = ({ item, userId, changeMessage, deleteMessage }) => {
     );
 };
 
-export default MessageItem
+export default MessageItem;

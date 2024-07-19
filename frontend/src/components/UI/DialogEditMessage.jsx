@@ -14,7 +14,7 @@ const DialogEditMessage = ({ editItem, setEditItem, editorEditState, onEditorEdi
                 open={editItem !== null}
                 handler={() => setEditItem(null)}
             >
-                <DialogHeader></DialogHeader>
+                <DialogHeader>...</DialogHeader>
                 <DialogBody className="text-center">
                     <Editor
                         editorStyle={{ height: '5rem' }}

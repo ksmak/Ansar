@@ -3,6 +3,7 @@ import FileIcon from './FileIcon';
 
 const FileItem = ({ item }) => {
     const filename = decodeURI(item.file.slice(item.file.lastIndexOf('/') + 1));
+
     const path = process.env.REACT_APP_API_HOST + item.file;
 
     return (
@@ -25,4 +26,4 @@ const FileItem = ({ item }) => {
     )
 }
 
-export default FileItem
+export default FileItem;
