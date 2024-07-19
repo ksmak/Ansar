@@ -14,11 +14,6 @@ class Chat(models.Model):
         null=True,
         blank=True
     )
-    admins = models.ManyToManyField(
-        verbose_name='администраторы',
-        to=User,
-        related_name='admins'
-    )
     users = models.ManyToManyField(
         verbose_name='пользователи',
         to=User,
@@ -29,7 +24,7 @@ class Chat(models.Model):
         to=User,
         related_name='actives'
     )
-    creation_date = models.DateTimeField(
+    created_at = models.DateTimeField(
         verbose_name='дата создания',
         auto_now_add=True
     )
@@ -64,7 +59,7 @@ class Message(models.Model):
         verbose_name='получатель: пользователь',
         to=User,
         on_delete=models.CASCADE,
-        related_name='user_messages',
+        related_name='to_user_messages',
         null=True,
         blank=True
     )
@@ -87,19 +82,32 @@ class Message(models.Model):
         null=True,
         blank=True
     )
-    
-    modified_date = models.DateTimeField(
+    readers = models.ManyToManyField(
+        to=User,
+        through="Reader",
+        related_name="read_messages"
+    )
+    created_at = models.DateTimeField(
+        verbose_name='дата создания',
+        auto_now_add=True
+    )
+    changed_at = models.DateTimeField(
         verbose_name='дата изменения',
         auto_now=True
+    )
+    deleted_at = models.DateTimeField(
+        verbose_name='дата удаления',
+        null=True,
+        blank=True
     )
 
     class Meta:
         verbose_name = 'сообщение'
         verbose_name_plural = 'сообщения'
-        ordering = ('modified_date', )
+        ordering = ('changed_at', )
 
     def __str__(self) -> str:
-        return f"Message[{self.from_user} {self.modified_date}]: {self.text}" # noqa
+        return f"Message[{self.state} {self.from_user} {self.created_at} {self.changed_at} {self.deleted_at}]: {self.text}" # noqa
 
 
 class Reader(models.Model):
@@ -107,15 +115,12 @@ class Reader(models.Model):
     message = models.ForeignKey(
         verbose_name="сообщение",
         to=Message,
-        on_delete=models.CASCADE,
-        related_name="readers"
+        on_delete=models.CASCADE
     )
     user = models.ForeignKey(
         verbose_name="пользователь",
         to=User,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        on_delete=models.CASCADE
     )
     read_date = models.DateTimeField(
         verbose_name="дата прочтения сообщения",

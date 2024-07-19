@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { EditorState, convertToRaw, ContentState } from "draft-js";
 import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from "html-to-draftjs";
+import { v4 as uuidv4 } from 'uuid';
 
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import "draft-js/dist/Draft.css";
@@ -11,7 +12,7 @@ import api from '../../api/index';
 import PanelTop from "../UI/PanelTop";
 import PanelLeft from "../UI/PanelLeft";
 import PanelRight from "../UI/PanelRight";
-import AlertSendFile from "../UI/AlertSendFile";
+import AlertSend from "../UI/AlertSend";
 import AlertError from "../UI/AlertError";
 import DialogEditMessage from "../UI/DialogEditMessage";
 import DialogDeleteMessage from "../UI/DialogDeleteMessage";
@@ -36,7 +37,7 @@ const MainPage = () => {
   const [editorEditState, setEditorEditState] = useState(
     () => EditorState.createEmpty(),
   );
-  const [files, setFiles] = useState([]);
+  const [sends, setSends] = useState([]);
   const [error, setError] = useState('');
   const userId = Number(sessionStorage.getItem('user_id'));
   const messagesEndRef = useRef(null);
@@ -45,11 +46,11 @@ const MainPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const calcUserCountMsg = () => {
+  const calcUserCountMsg = (users) => {
     let result = {};
     let total = 0;
     users.length > 0 && users.forEach(item => {
-      let messages = item.messages.filter(msg => msg.from_user !== userId && msg.to_user === userId && msg.readers.findIndex(reader => reader.user === userId) === -1);
+      let messages = item.messages.filter(msg => msg.from_user !== userId && msg.to_user === userId && msg.readers.findIndex(reader => reader.id === userId) === -1);
       result = {
         ...result,
         [`user_${item.id}`]: messages.length,
@@ -63,11 +64,11 @@ const MainPage = () => {
     return result;
   };
 
-  const calcChatCountMsg = () => {
+  const calcChatCountMsg = (chats) => {
     let result = {};
     let total = 0;
     chats.forEach(item => {
-      let messages = item.messages.filter(msg => msg.from_user !== userId && msg.readers.findIndex(reader => reader.user === userId) === -1);
+      let messages = item.messages.filter(msg => msg.from_user !== userId && msg.readers.findIndex(reader => reader.id === userId) === -1);
       result = {
         ...result,
         [`chat_${item.id}`]: messages.length,
@@ -113,12 +114,12 @@ const MainPage = () => {
   }, [messages, chats, users]);
 
   useEffect(() => {
-    if (chats.length > 0) setCountChatMsg(calcChatCountMsg());
+    if (chats.length > 0) setCountChatMsg(calcChatCountMsg(chats));
     // eslint-disable-next-line
   }, [chats]);
 
   useEffect(() => {
-    if (users.length > 0) setCountUserMsg(calcUserCountMsg());
+    if (users.length > 0) setCountUserMsg(calcUserCountMsg(users));
     // eslint-disable-next-line
   }, [users]);
 
@@ -140,6 +141,14 @@ const MainPage = () => {
           });
           break;
         case "new_message":
+          setSends(prev => {
+            let new_arr = [...prev];
+            const index = new_arr.findIndex(item => item.uuid === data.uuid);
+            if (index >= 0) {
+              new_arr.splice(index);
+            }
+            return new_arr;
+          })
           if (data.message_type === "user") {
             setUsers(prev => {
               let new_arr = [...prev];
@@ -200,24 +209,19 @@ const MainPage = () => {
     };
     return socket;
   }
-
+  
   const handleItemClick = (item) => {
     setSelectItem(item);
     setMessages(item.messages);
-    let messages = [];
-    if (messageType === 'user') {
-      messages = item.messages.filter(msg => msg.from_user !== userId && msg.to_user === userId && msg.readers.findIndex(reader => reader.user === userId) === -1);
-    } else {
-      messages = item.messages.filter(msg => msg.from_user !== userId && msg.readers.findIndex(reader => reader.user === userId) === -1);
-    }
-    messages.forEach(item => {
+    let msgs = item.messages.filter(msg => msg.from_user !== userId && msg.readers.findIndex(reader => reader.id === userId) === -1);
+    for (item of msgs) {
       const message = {
         message: "read_message",
         message_type: messageType,
         message_id: item.id,
       }
       socket.send(JSON.stringify(message));
-    })
+    }
   }
 
   const handleSendMessage = () => {
@@ -229,8 +233,10 @@ const MainPage = () => {
       message_type: messageType,
       id: selectItem.id,
       text: text,
-      filename: null
+      filename: null,
+      uuid: uuidv4(),
     }
+    setSends(prev => prev.concat({uuid: message.uuid, title: `Отправка сообщения "${message.text.substring(0, 20)}..." в "${selectItem.title}" ...`}))
     socket.send(JSON.stringify(message));
     setText('');
     setEditorState(() => EditorState.createEmpty());
@@ -242,10 +248,11 @@ const MainPage = () => {
     input.type = 'file';
     input.onchange = e => {
       let files = [...e.target.files];
-      setFiles(files);
       files.forEach(file => {
         let formData = new FormData();
         formData.append('file', file);
+        let uuid = uuidv4();
+        setSends(prev => prev.concat({uuid: uuid, title: `Отправка файла "${file.name}" в "${selectItem.title}" ...`}))
         api.ansarClient.upload_file(formData)
           .then((resp) => {
             const message = {
@@ -254,16 +261,15 @@ const MainPage = () => {
               id: selectItem.id,
               text: null,
               filename: resp.data.filename,
+              uuid: uuid,
             }
             socket.send(JSON.stringify(message));
             setError('');
             setText('');
-            setFiles([]);
           })
           .catch((error) => {
             setError(error.message);
             setText('');
-            setFiles([]);
           });
       });
     }
@@ -320,7 +326,11 @@ const MainPage = () => {
 
   return (
     <div className="h-[calc(100vh-6rem)]">
-      <AlertSendFile files={files} />
+      <div className="absolute opacity-55 w-full flex flex-col gap-1">
+        {sends && sends.map(send => (
+          <AlertSend title={send.title} />
+        ))}
+      </div>
       <AlertError error={error} setError={setError} />
       <DialogEditMessage
         editItem={editItem}

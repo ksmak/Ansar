@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 
 # Channels
-from channels.generic.websocket import JsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 # Project
 from .tasks import (
@@ -19,22 +19,23 @@ from .tasks import (
 User = get_user_model()
 
 
-class ChatConsumer(JsonWebsocketConsumer):
+class ChatConsumer(AsyncJsonWebsocketConsumer):
     """Consumer for chat."""
     def __init__(self, *args, **kwargs):
         super().__init__(self, *args, **kwargs)
         self.user = None
         self.group_name = 'chat'
 
-    def connect(self):
+    async def connect(self):
         self.user = self.scope["user"]
         if type(self.user) != User:
             raise ValidationError("User not found.")
 
-        self.accept()
+        await self.accept()
 
-        async_to_sync(self.channel_layer.group_add)(
-            self.group_name, self.channel_name
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
         )
 
         update_chat.delay(
@@ -43,19 +44,20 @@ class ChatConsumer(JsonWebsocketConsumer):
             True,
         )
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         update_chat.delay(
             self.group_name,
             self.user.id,
             False,
         )
         
-        async_to_sync(self.channel_layer.group_discard)(
-            self.group_name, self.channel_name
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
         )
 
 
-    def receive_json(self, content, **kwargs):
+    async def receive_json(self, content, **kwargs):
         if content["message"] == "send_message":
             send_message.delay(
                self.group_name,
@@ -64,6 +66,7 @@ class ChatConsumer(JsonWebsocketConsumer):
                self.user.id,
                content['text'],
                content['filename'],
+               content['uuid']
             )
         elif content["message"] == "read_message":
             read_message.delay(
@@ -88,5 +91,5 @@ class ChatConsumer(JsonWebsocketConsumer):
                content['message_id'],
             )
 
-    def chat_message(self, event):
-        self.send_json(event)
+    async def chat_message(self, event):
+        await self.send_json(event)

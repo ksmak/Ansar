@@ -15,7 +15,7 @@ const MsgHeader = ({ userId, item, changeMessage, deleteMessage }) => {
             <div className='flex flex-row gap-4 items-center'>
                 <FontAwesomeIcon icon={faUser} />
                 <div className='text-bold'>{item.fullname}</div>
-                <div className='italic'>{moment(item.modified_date).locale('ru').format('LLLL')}</div>
+                <div className='italic'>{moment(item.changed_date).locale('ru').format('LLLL')}</div>
             </div>
             {item.state === 1 && item.from_user === userId
                 ? < div className='flex flex-row gap-4 items-center'>

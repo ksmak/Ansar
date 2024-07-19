@@ -14,13 +14,12 @@ class ReaderSerializer(serializers.ModelSerializer):
         model = Reader
         fields = (
             'id',
-            'user',
             'fullname',
             'read_date'
         )
     
     def get_fullname(self, obj):
-        result = CustomUser.objects.get(id=obj.user.id)
+        result = CustomUser.objects.get(id=obj.id)
         return result.full_name
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -38,7 +37,9 @@ class MessageSerializer(serializers.ModelSerializer):
             'to_chat',
             'text',
             'file',
-            'modified_date',
+            'created_at',
+            'changed_at',
+            'deleted_at',
             'readers',
             'fullname',
         )
@@ -59,10 +60,9 @@ class ChatSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
-            'admins',
             'users',
             'actives',
-            'creation_date',
+            'created_at',
             'messages'
         )
 
