@@ -193,6 +193,7 @@ const MainPage = () => {
           break;
         
         case "new_message":
+          console.log(`new_message: ${data.uuid}`);
           setSends(prev => prev.filter(item => item.uuid !== data.uuid));
 
           if (data.message_type === "user") {
@@ -353,6 +354,7 @@ const MainPage = () => {
 
     input.onchange = (e) => {
       let files = [...e.target.files];
+      
       let file_data = [];
 
       for(const file of files) {

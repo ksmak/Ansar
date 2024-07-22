@@ -1,11 +1,5 @@
 const ansarClientModule = (instance) => {
     return {
-        async test() {
-            instance.post('api/test/')
-            .then(() => true)
-            .catch(() => false)
-        },
-
         login(params) {
             return instance({
                 method: 'post',
@@ -22,8 +16,8 @@ const ansarClientModule = (instance) => {
             return instance.get('api/chats/');
         },
         
-        async upload_file(formData) {
-            return await instance.post('api/uploadfile/', formData, {
+        upload_file(formData) {
+            return instance.post('api/uploadfile/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

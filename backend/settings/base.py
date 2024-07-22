@@ -97,20 +97,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'}, # noqa
 ]
 
-LANGUAGE_CODE = 'ru'
-TIME_ZONE = 'Asia/Almaty'
+LANGUAGE_CODE = os.environ.get('LANGUAGE_CODE')
+TIME_ZONE = os.environ.get('TIME_ZONE')
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_ROOT = 'D:\Media'
+MEDIA_ROOT = os.getenv('MEDIA_ROOT')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # datetime format
-DATETIME_FORMAT = "d.m.Y H:i:s"
+DATETIME_FORMAT = os.getenv('DATETIME_FORMAT')
 
 # Rest framework
 REST_FRAMEWORK = {
@@ -124,8 +123,8 @@ REST_FRAMEWORK = {
 
 # Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=3),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES'))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=int(os.getenv('REFRESH_TOKEN_LIFETIME_HOURS'))),
 }
 
 # Cors headers
