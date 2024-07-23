@@ -63,7 +63,9 @@ const MainPage = () => {
 
   const [localStream, setLocalStream] = useState(null);
 
-  const [peerConnection, setPeerConnection] = useState(null);
+  const [peerConnection, setPeerConnection] = useState(new RTCPeerConnection());
+
+  const [peers, setPeers] = useState([]);
 
   const userId = Number(sessionStorage.getItem('user_id'));
 
@@ -179,31 +181,12 @@ const MainPage = () => {
     // eslint-disable-next-line
   }, [videochat]);
 
-  const createVideo = (id) => {
-    let videoContainer = document.getElementById('video-container');
-
-    let remoteVideo = document.createElement('video');
-
-    remoteVideo.id = `video_${id}`;
-
-    remoteVideo.autoplay = true;
-
-    videoContainer.appendChild(remoteVideo);
-
-    return remoteVideo;
-  }
-
-  const removeVideo = (id) => {
-    let remoteVideo = document.getElementById(`video_${id}`);
-    remoteVideo.remove();
-  }
-
-  const createSocket = (group) => {
+  function createSocket(group) {
     let accessToken = sessionStorage.getItem('access');
 
     const socket = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat/${group}?token=${accessToken}`);
 
-    socket.onmessage = function (e) {
+    socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
 
       switch (data.category) {
@@ -227,17 +210,17 @@ const MainPage = () => {
           break;
 
         case "offer_videochat":
-          handleCreateOffer(data.offer);
+          handleCreateOffer(data.offer, data.to_id);
 
           break;
 
         case "answer_videochat":
-          handleCreateAnswer(data.answer);
+          handleCreateAnswer(data.answer, data.to_id);
 
           break;
 
         case "icecandidate_videochat":
-          handleCreateCandidate(data.candidate);
+          handleCreateCandidate(data.candidate, data.to_id);
 
           break;
 
@@ -362,7 +345,7 @@ const MainPage = () => {
     return socket;
   }
 
-  const handleItemClick = (item) => {
+  function handleItemClick(item) {
     setSelectItem(item);
 
     setMessages(item.messages);
@@ -387,7 +370,7 @@ const MainPage = () => {
     });
   }
 
-  const handleSendMessage = () => {
+  function handleSendMessage() {
     if (!text) {
       return;
     }
@@ -419,7 +402,7 @@ const MainPage = () => {
     setEditorState(() => EditorState.createEmpty());
   }
 
-  const handleSendFile = () => {
+  function handleSendFile() {
     let input = document.createElement('input');
 
     input.setAttribute('multiple', '');
@@ -482,41 +465,63 @@ const MainPage = () => {
     input.click();
   }
 
-  const handleCallVideoChat = async () => {
+  function createVideo(id) {
+    let videoContainer = document.getElementById('video-container');
+
+    let remoteVideo = document.createElement('video');
+
+    remoteVideo.id = id;
+
+    remoteVideo.autoplay = true;
+
+    videoContainer.appendChild(remoteVideo);
+
+    return remoteVideo;
+  }
+
+  function removeVideo(id) {
+    let remoteVideo = document.getElementById(id);
+
+    remoteVideo?.remove();
+  }
+
+  function handleCallVideoChat() {
     const constraints = {
       'video': true,
       'audio': true,
     };
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
 
-      setLocalStream(stream);
+        setLocalStream(stream);
 
-      if (messageType === "user") {
-        const message = {
-          message: "calling_videochat",
-          message_type: messageType,
-          to_id: selectItem.id,
-        };
+        if (messageType === "user") {
+          const message = {
+            message: "calling_videochat",
+            message_type: messageType,
+            to_id: selectItem.id,
+          };
 
-        socket['0'].send(JSON.stringify(message));
+          socket['0'].send(JSON.stringify(message));
 
-      } else {
-        const message = {
-          message: "accepting_videochat",
-          message_type: messageType,
-          to_id: selectItem.id,
-        };
+        } else {
+          const message = {
+            message: "accepting_videochat",
+            message_type: messageType,
+            to_id: selectItem.id,
+          };
 
-        socket[selectItem.id].send(JSON.stringify(message));
-      }
-    } catch (e) {
-      console.log('Error accessing media devices', e);
-    }
+          socket[selectItem.id].send(JSON.stringify(message));
+        }
+      })
+
+      .catch(e => {
+        setError('Error accessing media devices' + e.message);
+      });
   }
 
-  const handleCancelCallVideoChat = () => {
+  function handleCancelCallVideoChat() {
     const message = {
       message: "canceling_videochat",
       message_type: call.message_type,
@@ -526,7 +531,7 @@ const MainPage = () => {
     socket['0'].send(JSON.stringify(message));
   }
 
-  const handleAcceptCallVideoChat = () => {
+  function handleAcceptCallVideoChat() {
     const message = {
       message: "accepting_videochat",
       message_type: call.message_type,
@@ -536,101 +541,128 @@ const MainPage = () => {
     socket['0'].send(JSON.stringify(message));
   }
 
-  async function handleCreatePeerConnection() {
+  function handleCreatePeerConnection() {
+    peerConnection.addEventListener('icecandidate', (event) => {
+      if (event.candidate) {
+        const message = {
+          message: "new_candidate_videochat",
+          to_id: selectItem.id,
+          candidate: peerConnection.localDescription,
+        }
+
+        if (messageType === "user")
+          socket['0'].send(JSON.stringify(message));
+        else
+          socket[selectItem.id].send(JSON.stringify(message));
+      }
+    });
+
     let localVideo = document.getElementById('local-video');
 
     localVideo.srcObject = localStream;
+    localVideo.muted = true;
 
-    let peerConnection = new RTCPeerConnection();
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        const message = {
-          message: "new_candidate_videochat",
-          candidate: event.candidate,
-        }
+    peerConnection.createOffer()
+      .then(offer => {
+        peerConnection.setLocalDescription(new RTCSessionDescription(offer))
+          .then(() => {
+            const message = {
+              message: "new_offer_videochat",
+              to_id: selectItem.id,
+              offer: offer,
+            }
 
-        if (messageType === "user")
-          socket['0'].send(JSON.stringify(message));
-        else
-          socket[selectItem.id].send(JSON.stringify(message));
-      }
-    };
+            if (messageType === "user")
+              socket['0'].send(JSON.stringify(message));
+            else
+              socket[selectItem.id].send(JSON.stringify(message));
+          })
 
-    peerConnection.ontrack = (event) => {
-      localVideo.srcObject = event.streams[0];
-    };
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-
-    const message = {
-      message: "new_offer_videochat",
-      offer: offer,
-    }
-
-    if (messageType === "user")
-      socket['0'].send(JSON.stringify(message));
-    else
-      socket[selectItem.id].send(JSON.stringify(message));
-
-    setPeerConnection(peerConnection);
+        setPeerConnection(peerConnection);
+      })
+      .catch(e => {
+        setError('Error create peer connection: ' + e.message);
+      });
   }
 
-  async function handleCreateOffer(offer) {
+  function handleCreateOffer(offer, id) {
     let peerConnection = new RTCPeerConnection();
 
-    peerConnection.onicecandidate = (event) => {
+    let peerId = uuidv4();
+
+    peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
         const message = {
           message: "new_candidate_videochat",
-          candidate: event.candidate,
+          to_id: id,
+          candidate: peerConnection.localDescription,
         }
 
         if (messageType === "user")
           socket['0'].send(JSON.stringify(message));
         else
-          socket[selectItem.id].send(JSON.stringify(message));
+          socket[id].send(JSON.stringify(message));
       }
-    };
-
-    let remoteVideo = createVideo();
-
-    peerConnection.ontrack = (event) => {
-      remoteVideo.srcObject = event.streams[0];
-    };
-
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
     });
 
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
+    let remoteVideo = createVideo(peerId);
 
-    const message = {
-      message: "new_answer_videochat",
-      answer: answer,
-    }
+    let remoteStream = new MediaStream();
 
-    if (messageType === "user")
-      socket['0'].send(JSON.stringify(message));
-    else
-      socket[selectItem.id].send(JSON.stringify(message));
+    remoteVideo.srcObject = remoteStream;
 
-    setPeerConnection(peerConnection);
+    peerConnection.addEventListener('track', async (event) => {
+      remoteStream.addTrack(event.track, remoteStream);
+    });
+
+    peerConnection.addEventListener('iceconnectionstatechange', (event) => {
+      if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'closed') {
+        setPeers(prev => prev.filter(item => item.id !== peerId));
+
+        if (peerConnection.iceConnectionState !== 'closed') {
+          peerConnection.close();
+        }
+
+        removeVideo(peerId);
+      }
+    });
+
+    peerConnection.setRemoteDescription(offer)
+      .then(() => {
+        peerConnection.createAnswer()
+          .then(answer => {
+            peerConnection.setLocalDescription(answer)
+              .then(() => {
+                const message = {
+                  message: "new_answer_videochat",
+                  to_id: id,
+                  answer: answer,
+                }
+
+                if (messageType === "user")
+                  socket['0'].send(JSON.stringify(message));
+                else
+                  socket[id].send(JSON.stringify(message));
+              })
+          })
+      });
+
+    setPeers(prev => prev.concat({ 'id': peerId, 'peer': peerConnection }));
   }
 
-  async function handleCreateAnswer(answer) {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  function handleCreateAnswer(answer) {
+    peerConnection.setRemoteDescription(answer)
+      .then(() => console.log("Create answer success."))
   }
 
-  async function handleCreateCandidate(candidate) {
-    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  function handleCreateCandidate(candidate) {
+    peerConnection.addIceCandidate(candidate)
+      .then(() => console.log("Create candidate success."))
   }
 
-  const onEditorStateChange = (editorState) => {
+  function onEditorStateChange(editorState) {
     setEditorState(editorState);
 
     const markup = draftToHtml(
@@ -640,7 +672,7 @@ const MainPage = () => {
     setText(markup);
   };
 
-  const onEditorEditStateChange = (editorEditState) => {
+  function onEditorEditStateChange(editorEditState) {
     setEditorEditState(editorEditState);
 
     const markup = draftToHtml(
@@ -650,7 +682,7 @@ const MainPage = () => {
     setEditText(markup);
   }
 
-  const handleOpenEditMessageDialog = (message_id) => {
+  function handleOpenEditMessageDialog(message_id) {
     setEditItem(message_id);
 
     const message = selectItem.messages.find(msg => msg.id === message_id);
@@ -664,7 +696,7 @@ const MainPage = () => {
     setEditorEditState(EditorState.createWithContent(contentState));
   }
 
-  const handleEditMessage = () => {
+  function handleEditMessage() {
     const message = {
       message: "edit_message",
       message_type: messageType,
@@ -684,11 +716,11 @@ const MainPage = () => {
     setEditItem(null);
   };
 
-  const handleOpenDeleteMessageDialog = (message_id) => {
+  function handleOpenDeleteMessageDialog(message_id) {
     setDeleteItem(message_id);
   }
 
-  const handleDeleteMessage = () => {
+  function handleDeleteMessage() {
     const message = {
       message: "delete_message",
       message_type: messageType,
@@ -708,8 +740,9 @@ const MainPage = () => {
       {videochat
         ? <div className="h-[calc(100vh-6rem)] w-full bg-gray">
           Video Chat
-          <div id="video-container">
-            <video id="local-video" muted autoPlay></video>
+          <div id="video-container"></div>
+          <div>
+            <video id="local-video" autoPlay></video>
           </div>
         </div>
         : <div className="h-[calc(100vh-6rem)]">

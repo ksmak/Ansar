@@ -117,6 +117,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "category": "offer_videochat",
+                    "to_id": content["to_id"],
                     "offer": content["offer"],
                 },
             )
@@ -126,6 +127,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "category": "answer_videochat",
+                    "to_id": content["to_id"],
                     "answer": content["answer"],
                 },
             )
@@ -135,6 +137,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "chat_message",
                     "category": "answer_videochat",
+                    "to_id": content["to_id"],
                     "candidate": content["candidate"],
                 },
             )
