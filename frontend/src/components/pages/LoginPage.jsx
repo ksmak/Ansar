@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@material-tailwind/react";
 import { useAuth } from '../../hooks/useAuth';
@@ -10,7 +10,7 @@ const LoginPage = () => {
 
     const location = useLocation();
 
-    const [username, setUsername] = useState(localStorage.getItem('username'));
+    const [username, setUsername] = useState('');
 
     const [password, setPassword] = useState('');
 
@@ -19,6 +19,14 @@ const LoginPage = () => {
     const { onLogin } = useAuth();
 
     let fromPage = location.state?.from?.pathname || '/';
+
+    useEffect(() => {
+        let username = localStorage.getItem('username');
+
+        if (username) {
+            setUsername(username);
+        }
+    }, [])
 
     const onSignIn = (e) => {
         e.preventDefault();

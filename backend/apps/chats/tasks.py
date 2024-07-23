@@ -13,8 +13,8 @@ from .serializers import (
 
 
 @shared_task
-def send_group_message(group_name: str, message_data: dict) -> None:
-    async def send_message():
+def send_group(group_name: str, message_data: dict) -> None:
+    async def send_msg():
         channel_layer = get_channel_layer()
         await channel_layer.group_send(
             group_name,
@@ -28,9 +28,9 @@ def send_group_message(group_name: str, message_data: dict) -> None:
         loop = None
 
     if loop and loop.is_running():
-        asyncio.run_coroutine_threadsafe(send_message(), loop)
+        asyncio.run_coroutine_threadsafe(send_msg(), loop)
     else:
-        asyncio.run(send_message())
+        asyncio.run(send_msg())
 
 
 @shared_task
@@ -45,7 +45,7 @@ def update_chat(
 
     serializer = OnlineUserSerializer(online_user)
 
-    send_group_message.delay(group_name, {
+    send_group.delay(group_name, {
         "type": "chat_message",
         "category": "change_chat",
         "online_user": serializer.data,
@@ -81,7 +81,7 @@ def send_message(
 
     serializer = MessageSerializer(message)
 
-    send_group_message.delay(group_name, {
+    send_group.delay(group_name, {
         "type": "chat_message",
         "category": "new_message",
         "message_type": message_type,
@@ -104,12 +104,13 @@ def read_message(
 
     serializer = MessageSerializer(message)
 
-    send_group_message.delay(group_name, {
+    send_group.delay(group_name, {
         "type": "chat_message",
         "category": "change_message",
         "message_type": message_type,
         "message": serializer.data,
     })
+
 
 @shared_task
 def change_message(
@@ -126,7 +127,7 @@ def change_message(
 
     serializer = MessageSerializer(message)
 
-    send_group_message.delay(group_name, {
+    send_group.delay(group_name, {
         "type": "chat_message",
         "category": "change_message",
         "message_type": message_type,
@@ -148,12 +149,13 @@ def delete_message(
 
     serializer = MessageSerializer(message)
 
-    send_group_message.delay(group_name, {
+    send_group.delay(group_name, {
         "type": "chat_message",
         "category": "change_message",
         "message_type": message_type,
         "message": serializer.data,
     })
+
 
 @shared_task
 def clean_chat():

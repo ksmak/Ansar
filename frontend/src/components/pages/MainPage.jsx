@@ -20,7 +20,7 @@ import DialogDeleteMessage from "../UI/DialogDeleteMessage";
 const MainPage = () => {
   const navigate = useNavigate();
 
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState({});
   
   const [users, setUsers] = useState([]);
   
@@ -120,15 +120,6 @@ const MainPage = () => {
   };
 
   useEffect(() => {
-    try {
-      setSocket(createSocket());
-  
-    } catch (error) {
-      setError("Error create socket!", error.message);
-  
-      navigate("/login");
-    }
-  
     api.ansarClient.get_users()
       .then((resp) => {
         setUsers(resp.data);
@@ -142,12 +133,21 @@ const MainPage = () => {
     api.ansarClient.get_chats()
       .then((resp) => {
         setChats(resp.data);
+
+        let skt = {'0': createSocket(0)}
+
+        resp.data.forEach(group => {
+          skt[group.id] = createSocket(group.id); 
+        });
+
+        setSocket(skt);
       })
   
       .catch((error) => {
         setError('Error get chats!', error.message);
         navigate("/login");
       });
+
     // eslint-disable-next-line
   }, []);
 
@@ -165,10 +165,10 @@ const MainPage = () => {
     // eslint-disable-next-line
   }, [users]);
 
-  const createSocket = () => {
+  const createSocket = (group) => {
     let accessToken = sessionStorage.getItem('access');
 
-    const socket = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat?token=${accessToken}`);
+    const socket = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat/${group}?token=${accessToken}`);
     
     socket.onmessage = function (e) {
       const data = JSON.parse(e.data);
@@ -313,7 +313,11 @@ const MainPage = () => {
         message_id: msg.id,
       }
 
-      socket.send(JSON.stringify(message));
+      if (messageType === "user") {
+        socket['0'].send(JSON.stringify(message));
+      } else {
+        socket[item.id].send(JSON.stringify(message));
+      }
     });
   }
 
@@ -338,7 +342,11 @@ const MainPage = () => {
       }
     ));
     
-    socket.send(JSON.stringify(message));
+    if (messageType === "user") {
+      socket['0'].send(JSON.stringify(message));
+    } else {
+      socket[selectItem.id].send(JSON.stringify(message));
+    }
     
     setText('');
     
@@ -388,7 +396,10 @@ const MainPage = () => {
             uuid: f.uuid,
           }
           
-          socket.send(JSON.stringify(message));
+          if (messageType === "user")
+            socket['0'].send(JSON.stringify(message));
+          else
+            socket[selectItem.id].send(JSON.stringify(message));
         
           setError('');
             
@@ -447,7 +458,10 @@ const MainPage = () => {
       text: editText,
     }
 
-    socket.send(JSON.stringify(message));
+    if (messageType === "user")
+      socket['0'].send(JSON.stringify(message));
+    else
+      socket[selectItem.id].send(JSON.stringify(message));
     
     setEditText('');
     
@@ -467,7 +481,10 @@ const MainPage = () => {
       message_id: deleteItem,
     }
     
-    socket.send(JSON.stringify(message));
+    if (messageType === "user")
+      socket['0'].send(JSON.stringify(message));
+    else
+      socket[selectItem.id].send(JSON.stringify(message));
     
     setDeleteItem(null);
   }

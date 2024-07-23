@@ -30,13 +30,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.user = self.scope["user"]
         if type(self.user) != User:
             raise ValidationError("User not found.")
-
-        await self.accept()
+        
+        self.group = self.scope["url_route"]["kwargs"]["group"]
+        self.group_name = f"chat_{self.group}"
 
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
         )
+
+        await self.accept()
 
         update_chat.delay(
             self.group_name,
