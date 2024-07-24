@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { EditorState, convertToRaw, ContentState } from "draft-js";
 import draftToHtml from 'draftjs-to-html';
 import htmlToDraft from "html-to-draftjs";
@@ -8,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
 import "draft-js/dist/Draft.css";
 
+import { useAuth } from "../hooks/auth";
 import api from '../../api/index';
 import PanelTop from "../UI/PanelTop";
 import PanelLeft from "../UI/PanelLeft";
@@ -18,10 +18,10 @@ import DialogEditMessage from "../UI/DialogEditMessage";
 import DialogDeleteMessage from "../UI/DialogDeleteMessage";
 import DialogCall from "../UI/DialogCall";
 
-const MainPage = () => {
-  const navigate = useNavigate();
+export default function MainPage() {
+  const { user } = useAuth();
 
-  const [socket, setSocket] = useState({});
+  const [ws, setWs] = useState(null);
 
   const [users, setUsers] = useState([]);
 
@@ -59,17 +59,346 @@ const MainPage = () => {
 
   const [call, setCall] = useState(null);
 
-  const [videochat, setVideoChat] = useState(false);
-
-  const [localStream, setLocalStream] = useState(null);
-
-  const [peerConnection, setPeerConnection] = useState(new RTCPeerConnection());
-
-  const [peers, setPeers] = useState([]);
-
-  const userId = Number(sessionStorage.getItem('user_id'));
+  const [openVideoChat, setOpenVideoChat] = useState(false);
 
   const messagesEndRef = useRef(null);
+
+  const localVideoRef = useRef(null);
+
+  const remoteVideoRef = useRef(null);
+
+  const constraints = { 'video': true, 'audio': true };
+
+  const configuration = { iceServers: [{ urls: 'stun:stun.example.org' }] };
+
+  const pc = new RTCPeerConnection(configuration);
+
+
+  useEffect(() => {
+    createWebSocket(ws);
+
+    api.ansarClient.get_users()
+      .then((resp) => {
+        setUsers(resp.data);
+      })
+
+      .catch((error) => {
+        setError('Error get users!', error.message);
+      });
+
+    api.ansarClient.get_chats()
+      .then((resp) => {
+        setChats(resp.data);
+      })
+
+      .catch((error) => {
+        setError('Error get chats!', error.message);
+      });
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, chats, users]);
+
+  useEffect(() => {
+    if (chats.length > 0) setCountChatMsg(calcChatCountMsg(chats));
+    // eslint-disable-next-line
+  }, [chats]);
+
+  useEffect(() => {
+    if (users.length > 0) setCountUserMsg(calcUserCountMsg(users));
+    // eslint-disable-next-line
+  }, [users]);
+
+  useEffect(() => {
+    if (openVideoChat) startPeerConnection();
+    // eslint-disable-next-line
+  }, [openVideoChat]);
+
+  function createWebSocket() {
+    let accessToken = sessionStorage.getItem('access');
+
+    const ws = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat/?token=${accessToken}`);
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+
+      switch (data.category) {
+        case "call":
+          setChatCall(data);
+          break;
+
+        case "cancel":
+          setChatCancel();
+          break;
+
+        case "accept":
+          setChatAccept(data);
+          break;
+
+        case "offer":
+          console.log(`offer: ${data}`);
+          setChatOffer(data);
+          break;
+
+        case "answer":
+          console.log(`answer: ${data}`);
+          setChatAnswer(data);
+          break;
+
+        case "candidate":
+          console.log(`candidate: ${data}`);
+          setChatCandidate(data);
+          break;
+
+        case "change_chat":
+          setChatChange(data);
+          break;
+
+        case "new_message":
+          setChatNewMessage(data);
+          break;
+
+        case "change_message":
+          setChatChangeMessage(data);
+          break;
+
+        default:
+          setError("Unknown message type!");
+          break;
+      }
+    }
+
+    setWs(ws);
+  }
+
+  function setChatCall(data) {
+    setCall(data);
+  };
+
+  function setChatCancel() {
+    setCall(null);
+  };
+
+  function setChatAccept(data) {
+    if (data.message_type === "user" || data.from_id === user.id) {
+      setOpenVideoChat(true);
+    }
+  };
+
+  function setChatOffer(data) {
+    const pc = new RTCPeerConnection(configuration);
+
+    pc.addEventListener('onicecandidate', (event) => {
+      if (event.candidate) {
+        ws.send({
+          "message": "send_candidate",
+          "message_type": call.messsage_type,
+          "to_id": call.to_id,
+          "desc": event.candidate,
+        });
+      }
+    });
+
+    pc.addEventListener('onnegotiationneeded', () => {
+      pc.createOffer()
+        .then((offer) => {
+          pc.setLocalDescription(offer)
+            .then(() => {
+              ws.send({
+                "message": "send_offer",
+                "message_type": call.messsage_type,
+                "to_id": call.to_id,
+                "desc": pc.localDescription,
+              });
+            })
+            .catch(e => setError("Error setting local description: " + e.message));
+        })
+        .catch(e => setError("Error creating offer: " + e.message));
+    });
+
+    pc.setRemoteDescription(data.desc)
+      .then(() => {
+        let stream = new MediaStream();
+
+        stream.getTracks().forEach((track) =>
+          pc.addTrack(track, stream));
+
+        remoteVideoRef.current.srcObject = stream;
+
+        pc.createAnswer()
+          .then(answer => {
+            pc.setLocalDescription(answer)
+              .then(() => {
+                ws.send({
+                  "message": "send_answer",
+                  "message_type": data.messsage_type,
+                  "to_id": data.to_id,
+                  "desc": pc.localDescription,
+                });
+              })
+          })
+          .catch(e => setError("Error creating answer: " + e.message));
+      })
+      .catch(e => setError("Error setting remote description: " + e.message));
+  };
+
+  function setChatAnswer(data) {
+    pc.setRemoteDescription(data.desc)
+      .catch(e => setError("Error setting answer: " + e.message));
+  };
+
+  function setChatCandidate(data) {
+    pc.addIceCandidate(data.desc)
+      .catch(e => setError("Error setting candidate: " + e.message));
+  };
+
+  function setChatChange(data) {
+    setUsers(prev => {
+      let new_arr = prev.map(item => ({ ...item }));
+
+      const index = prev.findIndex(item =>
+        item.id === data.online_user.user
+      );
+
+      if (index >= 0) {
+        new_arr[index].online.is_active = data.online_user.is_active;
+        new_arr[index].online.last_date = data.online_user.last_date;
+      }
+
+      return new_arr;
+    });
+  };
+
+  function setChatNewMessage(data) {
+    setSends(prev => prev.filter(item => item.uuid !== data.uuid));
+
+    if (data.message_type === "user") {
+      setUsers(prev => {
+        let new_arr = prev.map(item => ({ ...item }));
+
+        const index = prev.findIndex(item =>
+          item.id === data.message.from_user || item.id === data.message.to_user
+        );
+
+        if (index >= 0) {
+          const message = new_arr[index].messages.find(message =>
+            message.id === data.message.id
+          );
+
+          if (!message) {
+            new_arr[index].messages.push(data.message);
+          }
+        }
+
+        return new_arr;
+      });
+
+    } else {
+      setChats(prev => {
+        let new_arr = prev.map(item => ({ ...item }));
+
+        const index = prev.findIndex(item =>
+          item.id === data.message.to_chat
+        );
+
+        if (index >= 0) {
+          const message = new_arr[index].messages.find(message =>
+            message.id === data.message.id
+          );
+
+          if (!message) {
+            new_arr[index].messages.push(data.message);
+          }
+        }
+
+        return new_arr;
+      });
+    };
+
+  };
+
+  function setChatChangeMessage(data) {
+    if (data.message_type === "user") {
+      setUsers(prev => {
+        let new_arr = prev.map(item => ({ ...item }));
+
+        const index = prev.findIndex(item =>
+          item.id === data.message.from_user || item.id === data.message.to_user
+        );
+
+        if (index >= 0) {
+          const messageIndex = new_arr[index].messages.findIndex(message =>
+            message.id === data.message.id
+          );
+
+          if (messageIndex >= 0) {
+            new_arr[index].messages[messageIndex] = data.message;
+          }
+        }
+
+        return new_arr;
+      });
+    } else {
+      setChats(prev => {
+        let new_arr = prev.map(item => ({ ...item }));
+
+        const index = prev.findIndex(item =>
+          item.id === data.message.to_chat
+        );
+
+        if (index >= 0) {
+          const messageIndex = new_arr[index].messages.findIndex(item =>
+            item.id === data.message.id
+          );
+
+          if (messageIndex >= 0) {
+            new_arr[index].messages[messageIndex] = data.message;
+          }
+        }
+
+        return new_arr;
+      });
+    }
+  };
+
+  function startPeerConnection() {
+    pc.addEventListener('onicecandidate', (event) => {
+      if (event.candidate) {
+        ws.send({
+          "message": "send_candidate",
+          "message_type": call.messsage_type,
+          "to_id": call.to_id,
+          "desc": event.candidate,
+        });
+      }
+    });
+
+    pc.addEventListener('onnegotiationneeded', () => {
+      pc.createOffer()
+        .then((offer) => {
+          pc.setLocalDescription(offer)
+            .then(() => {
+              ws.send({
+                "message": "send_offer",
+                "message_type": call.messsage_type,
+                "to_id": call.to_id,
+                "desc": pc.localDescription,
+              });
+            })
+            .catch(e => setError("Error setting local description: " + e.message));
+        })
+        .catch(e => setError("Error creating offer: " + e.message));
+    });
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        stream.getTracks().forEach(track => pc.addTrack(track));
+        localVideoRef.current.srcObject = stream;
+      })
+      .catch(e => setError("Error accessing media devices: " + e.message));
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,9 +411,9 @@ const MainPage = () => {
 
     users.length > 0 && users.forEach(item => {
       let messages = item.messages.filter(msg =>
-        msg.from_user !== userId
-        && msg.to_user === userId
-        && msg.readers.findIndex(reader => reader.id === userId) === -1
+        msg.from_user !== user.id
+        && msg.to_user === user.id
+        && msg.readers.findIndex(reader => reader.id === user.id) === -1
       );
 
       result = {
@@ -110,8 +439,8 @@ const MainPage = () => {
 
     chats.forEach(item => {
       let messages = item.messages.filter(msg =>
-        msg.from_user !== userId
-        && msg.readers.findIndex(reader => reader.id === userId) === -1
+        msg.from_user !== user.id
+        && msg.readers.findIndex(reader => reader.id === user.id) === -1
       );
 
       result = {
@@ -130,243 +459,22 @@ const MainPage = () => {
     return result;
   };
 
-  useEffect(() => {
-    api.ansarClient.get_users()
-      .then((resp) => {
-        setUsers(resp.data);
-      })
-
-      .catch((error) => {
-        setError('Error get users!', error.message);
-        navigate("/login");
-      });
-
-    api.ansarClient.get_chats()
-      .then((resp) => {
-        setChats(resp.data);
-
-        let skt = { '0': createSocket(0) }
-
-        resp.data.forEach(group => {
-          skt[group.id] = createSocket(group.id);
-        });
-
-        setSocket(skt);
-      })
-
-      .catch((error) => {
-        setError('Error get chats!', error.message);
-        navigate("/login");
-      });
-
-    // eslint-disable-next-line
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, chats, users]);
-
-  useEffect(() => {
-    if (chats.length > 0) setCountChatMsg(calcChatCountMsg(chats));
-    // eslint-disable-next-line
-  }, [chats]);
-
-  useEffect(() => {
-    if (users.length > 0) setCountUserMsg(calcUserCountMsg(users));
-    // eslint-disable-next-line
-  }, [users]);
-
-  useEffect(() => {
-    if (videochat) handleCreatePeerConnection();
-    // eslint-disable-next-line
-  }, [videochat]);
-
-  function createSocket(group) {
-    let accessToken = sessionStorage.getItem('access');
-
-    const socket = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat/${group}?token=${accessToken}`);
-
-    socket.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-
-      switch (data.category) {
-        case "call_videochat":
-          setCall(data);
-
-          break;
-
-        case "cancel_videochat":
-          setCall(null);
-
-          break;
-
-        case "accept_videochat":
-          setCall(null);
-
-          if (data.message_type === "user" || data.from_user_id === userId) {
-            setVideoChat(true);
-          }
-
-          break;
-
-        case "offer_videochat":
-          handleCreateOffer(data.offer, data.to_id);
-
-          break;
-
-        case "answer_videochat":
-          handleCreateAnswer(data.answer, data.to_id);
-
-          break;
-
-        case "icecandidate_videochat":
-          handleCreateCandidate(data.candidate, data.to_id);
-
-          break;
-
-        case "change_chat":
-          setUsers(prev => {
-            let new_arr = prev.map(item => ({ ...item }));
-
-            const index = prev.findIndex(item =>
-              item.id === data.online_user.user
-            );
-
-            if (index >= 0) {
-              new_arr[index].online.is_active = data.online_user.is_active;
-              new_arr[index].online.last_date = data.online_user.last_date;
-            }
-
-            return new_arr;
-          });
-
-          break;
-
-        case "new_message":
-          setSends(prev => prev.filter(item => item.uuid !== data.uuid));
-
-          if (data.message_type === "user") {
-            setUsers(prev => {
-              let new_arr = prev.map(item => ({ ...item }));
-
-              const index = prev.findIndex(item =>
-                item.id === data.message.from_user || item.id === data.message.to_user
-              );
-
-              if (index >= 0) {
-                const message = new_arr[index].messages.find(message =>
-                  message.id === data.message.id
-                );
-
-                if (!message) {
-                  new_arr[index].messages.push(data.message);
-                }
-              }
-
-              return new_arr;
-            });
-
-          } else {
-            setChats(prev => {
-              let new_arr = prev.map(item => ({ ...item }));
-
-              const index = prev.findIndex(item =>
-                item.id === data.message.to_chat
-              );
-
-              if (index >= 0) {
-                const message = new_arr[index].messages.find(message =>
-                  message.id === data.message.id
-                );
-
-                if (!message) {
-                  new_arr[index].messages.push(data.message);
-                }
-              }
-
-              return new_arr;
-            });
-          };
-
-          break;
-
-        case "change_message":
-          if (data.message_type === "user") {
-            setUsers(prev => {
-              let new_arr = prev.map(item => ({ ...item }));
-
-              const index = prev.findIndex(item =>
-                item.id === data.message.from_user || item.id === data.message.to_user
-              );
-
-              if (index >= 0) {
-                const messageIndex = new_arr[index].messages.findIndex(message =>
-                  message.id === data.message.id
-                );
-
-                if (messageIndex >= 0) {
-                  new_arr[index].messages[messageIndex] = data.message;
-                }
-              }
-
-              return new_arr;
-            });
-          } else {
-            setChats(prev => {
-              let new_arr = prev.map(item => ({ ...item }));
-
-              const index = prev.findIndex(item =>
-                item.id === data.message.to_chat
-              );
-
-              if (index >= 0) {
-                const messageIndex = new_arr[index].messages.findIndex(item =>
-                  item.id === data.message.id
-                );
-
-                if (messageIndex >= 0) {
-                  new_arr[index].messages[messageIndex] = data.message;
-                }
-              }
-
-              return new_arr;
-            });
-          }
-
-          break;
-
-        default:
-          setError("Unknown message type!");
-
-          break;
-      }
-    }
-
-    return socket;
-  }
-
   function handleItemClick(item) {
     setSelectItem(item);
 
     setMessages(item.messages);
 
     let unread_messages = item.messages.filter(msg =>
-      msg.from_user !== userId
-      && msg.readers.findIndex(reader => reader.id === userId) === -1
+      msg.from_user !== user.id
+      && msg.readers.findIndex(reader => reader.id === user.id) === -1
     );
 
     unread_messages.forEach(msg => {
-      const message = {
+      ws.send(JSON.stringify({
         message: "read_message",
         message_type: messageType,
         message_id: msg.id,
-      }
-
-      if (messageType === "user") {
-        socket['0'].send(JSON.stringify(message));
-      } else {
-        socket[item.id].send(JSON.stringify(message));
-      }
+      }));
     });
   }
 
@@ -375,27 +483,23 @@ const MainPage = () => {
       return;
     }
 
-    const message = {
-      message: "send_message",
-      message_type: messageType,
-      id: selectItem.id,
-      text: text,
-      filename: null,
-      uuid: uuidv4(),
-    }
+    let message_id = uuidv4();
 
     setSends(prev =>
       prev.concat({
-        uuid: message.uuid,
-        title: `Отправка сообщения "${message.text.substring(0, 20)}..." в "${selectItem.title || selectItem.full_name}" ...`
+        message_id: message_id,
+        title: `Отправка сообщения "${text.substring(0, 20)}..." в "${selectItem.title || selectItem.full_name}" ...`
       }
       ));
 
-    if (messageType === "user") {
-      socket['0'].send(JSON.stringify(message));
-    } else {
-      socket[selectItem.id].send(JSON.stringify(message));
-    }
+    ws.send(JSON.stringify({
+      message: "send_message",
+      message_type: messageType,
+      to_id: selectItem.id,
+      text: text,
+      file: null,
+      message_id: message_id,
+    }));
 
     setText('');
 
@@ -417,7 +521,7 @@ const MainPage = () => {
       for (const file of files) {
         file_data.push({
           'file': file,
-          'uuid': uuidv4(),
+          'message_id': uuidv4(),
         });
       }
 
@@ -428,7 +532,7 @@ const MainPage = () => {
 
         setSends(prev =>
           prev.concat({
-            uuid: f.uuid,
+            message_id: f.message_id,
             title: `Отправка файла "${f.file.name}" в "${selectItem.title || selectItem.full_name}" ...`
           }
           ));
@@ -436,19 +540,14 @@ const MainPage = () => {
         try {
           const response = await api.ansarClient.upload_file(formData);
 
-          const message = {
+          ws.send(JSON.stringify({
             message: "send_message",
             message_type: messageType,
-            id: selectItem.id,
+            to_id: selectItem.id,
             text: null,
-            filename: response.data.filename,
-            uuid: f.uuid,
-          }
-
-          if (messageType === "user")
-            socket['0'].send(JSON.stringify(message));
-          else
-            socket[selectItem.id].send(JSON.stringify(message));
+            file: response.data.filename,
+            message_id: f.message_id,
+          }));
 
           setError('');
 
@@ -465,201 +564,28 @@ const MainPage = () => {
     input.click();
   }
 
-  function createVideo(id) {
-    let videoContainer = document.getElementById('video-container');
-
-    let remoteVideo = document.createElement('video');
-
-    remoteVideo.id = id;
-
-    remoteVideo.autoplay = true;
-
-    videoContainer.appendChild(remoteVideo);
-
-    return remoteVideo;
-  }
-
-  function removeVideo(id) {
-    let remoteVideo = document.getElementById(id);
-
-    remoteVideo?.remove();
-  }
-
   function handleCallVideoChat() {
-    const constraints = {
-      'video': true,
-      'audio': true,
-    };
-
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-
-        setLocalStream(stream);
-
-        if (messageType === "user") {
-          const message = {
-            message: "calling_videochat",
-            message_type: messageType,
-            to_id: selectItem.id,
-          };
-
-          socket['0'].send(JSON.stringify(message));
-
-        } else {
-          const message = {
-            message: "accepting_videochat",
-            message_type: messageType,
-            to_id: selectItem.id,
-          };
-
-          socket[selectItem.id].send(JSON.stringify(message));
-        }
-      })
-
-      .catch(e => {
-        setError('Error accessing media devices' + e.message);
-      });
+    ws.send(JSON.stringify({
+      message: "send_call",
+      message_type: messageType,
+      to_id: selectItem.id,
+    }));
   }
 
   function handleCancelCallVideoChat() {
-    const message = {
-      message: "canceling_videochat",
+    ws.send(JSON.stringify({
+      message: "send_cancel",
       message_type: call.message_type,
       to_id: call.to_id,
-    };
-
-    socket['0'].send(JSON.stringify(message));
+    }));
   }
 
   function handleAcceptCallVideoChat() {
-    const message = {
-      message: "accepting_videochat",
+    ws.send(JSON.stringify({
+      message: "send_accept",
       message_type: call.message_type,
       to_id: call.to_id,
-    };
-
-    socket['0'].send(JSON.stringify(message));
-  }
-
-  function handleCreatePeerConnection() {
-    peerConnection.addEventListener('icecandidate', (event) => {
-      if (event.candidate) {
-        const message = {
-          message: "new_candidate_videochat",
-          to_id: selectItem.id,
-          candidate: peerConnection.localDescription,
-        }
-
-        if (messageType === "user")
-          socket['0'].send(JSON.stringify(message));
-        else
-          socket[selectItem.id].send(JSON.stringify(message));
-      }
-    });
-
-    let localVideo = document.getElementById('local-video');
-
-    localVideo.srcObject = localStream;
-    localVideo.muted = true;
-
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-    peerConnection.createOffer()
-      .then(offer => {
-        peerConnection.setLocalDescription(new RTCSessionDescription(offer))
-          .then(() => {
-            const message = {
-              message: "new_offer_videochat",
-              to_id: selectItem.id,
-              offer: offer,
-            }
-
-            if (messageType === "user")
-              socket['0'].send(JSON.stringify(message));
-            else
-              socket[selectItem.id].send(JSON.stringify(message));
-          })
-
-        setPeerConnection(peerConnection);
-      })
-      .catch(e => {
-        setError('Error create peer connection: ' + e.message);
-      });
-  }
-
-  function handleCreateOffer(offer, id) {
-    let peerConnection = new RTCPeerConnection();
-
-    let peerId = uuidv4();
-
-    peerConnection.addEventListener('icecandidate', (event) => {
-      if (event.candidate) {
-        const message = {
-          message: "new_candidate_videochat",
-          to_id: id,
-          candidate: peerConnection.localDescription,
-        }
-
-        if (messageType === "user")
-          socket['0'].send(JSON.stringify(message));
-        else
-          socket[id].send(JSON.stringify(message));
-      }
-    });
-
-    let remoteVideo = createVideo(peerId);
-
-    let remoteStream = new MediaStream();
-
-    remoteVideo.srcObject = remoteStream;
-
-    peerConnection.addEventListener('track', async (event) => {
-      remoteStream.addTrack(event.track, remoteStream);
-    });
-
-    peerConnection.addEventListener('iceconnectionstatechange', (event) => {
-      if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'closed') {
-        setPeers(prev => prev.filter(item => item.id !== peerId));
-
-        if (peerConnection.iceConnectionState !== 'closed') {
-          peerConnection.close();
-        }
-
-        removeVideo(peerId);
-      }
-    });
-
-    peerConnection.setRemoteDescription(offer)
-      .then(() => {
-        peerConnection.createAnswer()
-          .then(answer => {
-            peerConnection.setLocalDescription(answer)
-              .then(() => {
-                const message = {
-                  message: "new_answer_videochat",
-                  to_id: id,
-                  answer: answer,
-                }
-
-                if (messageType === "user")
-                  socket['0'].send(JSON.stringify(message));
-                else
-                  socket[id].send(JSON.stringify(message));
-              })
-          })
-      });
-
-    setPeers(prev => prev.concat({ 'id': peerId, 'peer': peerConnection }));
-  }
-
-  function handleCreateAnswer(answer) {
-    peerConnection.setRemoteDescription(answer)
-      .then(() => console.log("Create answer success."))
-  }
-
-  function handleCreateCandidate(candidate) {
-    peerConnection.addIceCandidate(candidate)
-      .then(() => console.log("Create candidate success."))
+    }));
   }
 
   function onEditorStateChange(editorState) {
@@ -697,17 +623,12 @@ const MainPage = () => {
   }
 
   function handleEditMessage() {
-    const message = {
+    ws.send(JSON.stringify({
       message: "edit_message",
       message_type: messageType,
       message_id: editItem,
       text: editText,
-    }
-
-    if (messageType === "user")
-      socket['0'].send(JSON.stringify(message));
-    else
-      socket[selectItem.id].send(JSON.stringify(message));
+    }));
 
     setEditText('');
 
@@ -721,34 +642,35 @@ const MainPage = () => {
   }
 
   function handleDeleteMessage() {
-    const message = {
+    ws.send(JSON.stringify({
       message: "delete_message",
       message_type: messageType,
       message_id: deleteItem,
-    }
-
-    if (messageType === "user")
-      socket['0'].send(JSON.stringify(message));
-    else
-      socket[selectItem.id].send(JSON.stringify(message));
+    }));
 
     setDeleteItem(null);
   }
 
   return (
     <div>
-      {videochat
-        ? <div className="h-[calc(100vh-6rem)] w-full bg-gray">
+      {openVideoChat
+        ? <div className="h-screen w-full bg-black">
           Video Chat
-          <div id="video-container"></div>
-          <div>
-            <video id="local-video" autoPlay></video>
+          <div className="flex flex-row justify-between">
+            <video
+              className="grow"
+              ref={localVideoRef} autoPlay
+            />
+            <video
+              className="grow"
+              ref={remoteVideoRef} autoPlay
+            />
           </div>
         </div>
         : <div className="h-[calc(100vh-6rem)]">
           <div className="absolute opacity-55 w-full flex flex-col gap-1">
             {sends && sends.map(send => (
-              <AlertSend key={send.uuid} title={send.title} />
+              <AlertSend key={send.message_id} title={send.title} />
             ))}
           </div>
           <AlertError error={error} setError={setError} />
@@ -765,7 +687,7 @@ const MainPage = () => {
             handleDeleteMessage={handleDeleteMessage}
           />
           <DialogCall
-            userId={userId}
+            userId={user.id}
             call={call}
             handleAcceptCallVideoChat={handleAcceptCallVideoChat}
             handleCancelCallVideoChat={handleCancelCallVideoChat}
@@ -785,7 +707,7 @@ const MainPage = () => {
             />
             <PanelRight
               messages={messages}
-              userId={userId}
+              userId={user.id}
               handleOpenEditMessageDialog={handleOpenEditMessageDialog}
               handleOpenDeleteMessageDialog={handleOpenDeleteMessageDialog}
               handleSendMessage={handleSendMessage}
@@ -795,11 +717,10 @@ const MainPage = () => {
               selectItem={selectItem}
               messagesEndRef={messagesEndRef}
               onEditorStateChange={onEditorStateChange}
+              messageType={messageType}
             />
           </div>
         </div>}
     </div>
   )
 }
-
-export default MainPage;

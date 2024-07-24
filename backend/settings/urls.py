@@ -16,30 +16,25 @@ from chats.views import (
 from auths.views import (
     MyTokenObtainPairView,
     UsersViewSet,
-    TestTokenView,
 )
 
 
 router = routers.DefaultRouter()
-router.register(r'chats', ChatViewSet, basename='rooms')
-router.register(r'users', UsersViewSet, basename='users')
+router.register(r"chats", ChatViewSet, basename="rooms")
+router.register(r"users", UsersViewSet, basename="users")
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/token/', MyTokenObtainPairView.as_view()),
-    path('api/token/refresh/', jwt_views.TokenRefreshView.as_view()),
-    path('api/', include(router.urls)),
-    path('api/uploadfile/', FileUploadView.as_view()),
-    path('api/test/', TestTokenView.as_view()),
+    path("admin/", admin.site.urls),
+    path("api/token/", MyTokenObtainPairView.as_view()),
+    path("api/token/refresh/", jwt_views.TokenRefreshView.as_view()),
+    path("api/", include(router.urls)),
+    path("api/uploadfile/", FileUploadView.as_view()),
 ]
 
 
 if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT
-    )
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += [
-        path('__debug__/', include('debug_toolbar.urls')),
+        path("__debug__/", include("debug_toolbar.urls")),
     ]

@@ -7,7 +7,10 @@ import 'moment/locale/ru';
 const CheckReader = ({ readers }) => {
     const content = readers.length > 0 && readers.map(reader => {
         return (
-            < div className="w-96">
+            <div
+                key={reader.id}
+                className="w-96"
+            >
                 <Typography
                     variant="small"
                     color="white"

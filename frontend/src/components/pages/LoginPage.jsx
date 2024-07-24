@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@material-tailwind/react";
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../hooks/auth';
+
 import api from '../../api/index';
 
 
-const LoginPage = () => {
+export default function LoginPage() {
     const navigate = useNavigate();
 
     const location = useLocation();
+
+    const { login } = useAuth();
 
     const [username, setUsername] = useState('');
 
@@ -16,7 +19,6 @@ const LoginPage = () => {
 
     const [error, setError] = useState('');
 
-    const { onLogin } = useAuth();
 
     let fromPage = location.state?.from?.pathname || '/';
 
@@ -28,12 +30,16 @@ const LoginPage = () => {
         }
     }, [])
 
-    const onSignIn = (e) => {
+    function handleLogin(e) {
         e.preventDefault();
 
         api.ansarClient.login({ 'username': username, 'password': password })
             .then((resp) => {
-                onLogin(resp.data, () => navigate(fromPage, { replace: true }));
+                login(resp.data.access, resp.data.refresh);
+
+                localStorage.setItem('username', username);
+
+                navigate(fromPage, { replace: true });
             })
 
             .catch(() => {
@@ -85,13 +91,11 @@ const LoginPage = () => {
                         variant='outlined'
                         color='white'
                         size='md'
-                        onClick={onSignIn}>
+                        onClick={handleLogin}>
                         Войти
                     </Button>
                 </div>
             </form>
         </div>
     );
-};
-
-export default LoginPage;
+}

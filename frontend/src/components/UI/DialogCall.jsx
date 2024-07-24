@@ -17,9 +17,9 @@ const DialogCall = ({ userId, call, handleAcceptCallVideoChat, handleCancelCallV
             >
                 <DialogHeader>...</DialogHeader>
                 <DialogBody className="text-center">
-                    {call?.from_user_id === userId
-                        ? `Ожидание ответа пользователя <${call?.title}> ...`
-                        : `Видеозвонок от пользователя <${call?.from_user_fullname}> ...`}
+                    {call?.from_id === userId
+                        ? `Ожидание ответа пользователя <${call?.to_title}> ...`
+                        : `Видеозвонок от пользователя <${call?.from_fullname}> ...`}
                 </DialogBody>
                 <DialogFooter>
                     <Button
@@ -31,7 +31,7 @@ const DialogCall = ({ userId, call, handleAcceptCallVideoChat, handleCancelCallV
                     >
                         <span>Отмена</span>
                     </Button>
-                    {call?.from_user_id !== userId && <Button
+                    {call?.from_id !== userId && <Button
                         variant="gradient"
                         color="green"
                         size="sm"

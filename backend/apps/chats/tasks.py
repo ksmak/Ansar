@@ -1,9 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
-
 import asyncio
 
 from .models import Chat, Message, OnlineUser
@@ -12,18 +10,21 @@ from .serializers import MessageSerializer, OnlineUserSerializer
 
 @shared_task
 def send_group(group_name: str, message_data: dict) -> None:
+
     async def send_msg():
         channel_layer = get_channel_layer()
+
         await channel_layer.group_send(group_name, message_data)
 
-    # Запуск асинхронной задачи
     try:
         loop = asyncio.get_running_loop()
+
     except RuntimeError:
         loop = None
 
     if loop and loop.is_running():
         asyncio.run_coroutine_threadsafe(send_msg(), loop)
+
     else:
         asyncio.run(send_msg())
 
@@ -31,11 +32,10 @@ def send_group(group_name: str, message_data: dict) -> None:
 @shared_task
 def update_chat(
     group_name: str,
-    user_id: int,
+    from_id: int,
     is_active: bool,
 ):
-    user = get_user_model().objects.get(id=user_id)
-    online_user = OnlineUser.objects.get_or_create(user=user)[0]
+    online_user = OnlineUser.objects.get_or_create(user=from_id)[0]
     online_user.is_active = is_active
     online_user.save()
 
@@ -52,112 +52,153 @@ def update_chat(
 
 
 @shared_task
-def send_message(
+def update_videochat(
     group_name: str,
     message_type: str,
-    id: int,
-    from_user_id: int,
-    text: str,
-    filename: str,
-    uuid: str,
+    from_id: int,
+    to_id: int,
+    action: str,
+    desc: dict,
 ) -> None:
-    user = None
-    chat = None
+    from_fullname = ""
+
+    to_title = ""
+
     if message_type == "user":
-        user = get_user_model().objects.get(id=id)
+        from_user = get_user_model().objects.filter(id=from_id).first()
+
+        if from_user:
+            from_fullname = from_user.full_name
+
+        to_user = get_user_model().objects.filter(id=to_id).first()
+
+        if to_user:
+            to_title = to_user.full_name
     else:
-        chat = Chat.objects.get(id=id)
-    from_user = get_user_model().objects.get(id=from_user_id)
-    message = Message.objects.create(
-        from_user=from_user,
-        to_user=user,
-        to_chat=chat,
-        text=text,
+        group = Chat.objects.filter(id=to_id).first()
+
+        if group:
+            to_title = group.title
+
+    send_group.delay(
+        group_name,
+        {
+            "type": "chat_message",
+            "category": action,
+            "message_type": message_type,
+            "from_id": from_id,
+            "from_fullname": from_fullname,
+            "to_id": to_id,
+            "to_title": to_title,
+            "desc": desc,
+        },
     )
-    if filename:
-        message.file.name = filename
+
+
+@shared_task
+def update_message(
+    group_name: str,
+    action: str,
+    message_type: str,
+    from_id: int,
+    to_id: int,
+    text: str,
+    file: str,
+    message_id: str,
+) -> None:
+    if action == "new":
+        to_user = None
+
+        to_chat = None
+
+        if message_type == "user":
+            to_user = get_user_model().objects.get(id=to_id)
+
+        else:
+            to_chat = Chat.objects.get(id=to_id)
+
+        from_user = get_user_model().objects.get(id=from_id)
+
+        message = Message.objects.create(
+            from_user=from_user,
+            to_user=to_user,
+            to_chat=to_chat,
+            text=text,
+        )
+
+        if file:
+            message.file.name = file
+            message.save()
+
+        serializer = MessageSerializer(message)
+
+        send_group.delay(
+            group_name,
+            {
+                "type": "chat_message",
+                "category": "new_message",
+                "message_type": message_type,
+                "message": serializer.data,
+                "message_id": message_id,
+            },
+        )
+
+    elif action == "read":
+        from_user = get_user_model().objects.get(id=from_id)
+
+        message = Message.objects.get(id=message_id)
+        message.readers.add(from_user)
         message.save()
 
-    serializer = MessageSerializer(message)
+        serializer = MessageSerializer(message)
 
-    send_group.delay(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "new_message",
-            "message_type": message_type,
-            "message": serializer.data,
-            "uuid": uuid,
-        },
-    )
+        send_group.delay(
+            group_name,
+            {
+                "type": "chat_message",
+                "category": "change_message",
+                "message_type": message_type,
+                "message": serializer.data,
+            },
+        )
 
+    elif action == "edit":
+        from_user = get_user_model().objects.get(id=from_id)
 
-@shared_task
-def read_message(
-    group_name: str, message_type: str, user_id: int, message_id: int
-) -> None:
-    user = get_user_model().objects.get(id=user_id)
-    message = Message.objects.get(id=message_id)
-    message.readers.add(user)
-    message.save()
+        message = Message.objects.get(id=message_id)
+        message.text = text
+        message.save()
 
-    serializer = MessageSerializer(message)
+        serializer = MessageSerializer(message)
 
-    send_group.delay(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "change_message",
-            "message_type": message_type,
-            "message": serializer.data,
-        },
-    )
+        send_group.delay(
+            group_name,
+            {
+                "type": "chat_message",
+                "category": "change_message",
+                "message_type": message_type,
+                "message": serializer.data,
+            },
+        )
 
+    elif action == "delete":
+        from_user = get_user_model().objects.get(id=from_id)
 
-@shared_task
-def change_message(
-    group_name: str,
-    message_type: str,
-    user_id: int,
-    message_id: int,
-    text: str,
-):
-    from_user = get_user_model().objects.get(id=user_id)
-    message = Message.objects.get(id=message_id, from_user=from_user)
-    message.text = text
-    message.save()
+        message = Message.objects.get(id=message_id)
+        message.state = Message.STATE_DELETE
+        message.save()
 
-    serializer = MessageSerializer(message)
+        serializer = MessageSerializer(message)
 
-    send_group.delay(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "change_message",
-            "message_type": message_type,
-            "message": serializer.data,
-        },
-    )
-
-
-@shared_task
-def delete_message(group_name: str, message_type: str, user_id: int, message_id: int):
-    from_user = get_user_model().objects.get(id=user_id)
-    message = Message.objects.get(id=message_id, from_user=from_user)
-    message.state = Message.STATE_DELETE
-    message.save()
-
-    serializer = MessageSerializer(message)
-
-    send_group.delay(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": "change_message",
-            "message_type": message_type,
-            "message": serializer.data,
-        },
-    )
+        send_group.delay(
+            group_name,
+            {
+                "type": "chat_message",
+                "category": "change_message",
+                "message_type": message_type,
+                "message": serializer.data,
+            },
+        )
 
 
 @shared_task
@@ -165,44 +206,3 @@ def clean_chat():
     Message.objects.filter(
         modified_date__lt=timezone.now() - timezone.timedelta(days=1)
     ).delete()
-
-
-@shared_task
-def update_videochat(
-    group_name: str,
-    message_type: str,
-    from_user_id: int,
-    to_id: int,
-    category: str,
-) -> None:
-    from_user_fullname = ""
-    title = ""
-
-    if message_type == "user":
-        from_user = get_user_model().objects.filter(id=from_user_id).first()
-
-        if from_user:
-            from_user_fullname = from_user.full_name
-
-        to_user = get_user_model().objects.filter(id=to_id).first()
-
-        if to_user:
-            title = to_user.full_name
-    else:
-        group = Chat.objects.filter(id=to_id).first()
-
-        if group:
-            title = group.title
-
-    send_group.delay(
-        group_name,
-        {
-            "type": "chat_message",
-            "category": category,
-            "message_type": message_type,
-            "from_user_id": from_user_id,
-            "from_user_fullname": from_user_fullname,
-            "to_id": to_id,
-            "title": title,
-        },
-    )
