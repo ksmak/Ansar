@@ -4,7 +4,10 @@ import {
     DialogHeader,
     DialogBody,
     DialogFooter,
+    Typography
 } from "@material-tailwind/react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPhone } from '@fortawesome/free-solid-svg-icons';
 
 
 const DialogCall = ({ userId, call, handleAcceptCallVideoChat, handleCancelCallVideoChat }) => {
@@ -16,10 +19,13 @@ const DialogCall = ({ userId, call, handleAcceptCallVideoChat, handleCancelCallV
                 handler={handleCancelCallVideoChat}
             >
                 <DialogHeader>...</DialogHeader>
-                <DialogBody className="text-center">
-                    {call?.from_id === userId
-                        ? `Ожидание ответа пользователя <${call?.to_title}> ...`
-                        : `Видеозвонок от пользователя <${call?.from_fullname}> ...`}
+                <DialogBody className="text-center flex flex-row justify-center items-center">
+                    <Typography>
+                        {call?.from_id === userId
+                            ? `Ожидание ответа пользователя <${call?.to_title}> ...`
+                            : `Видеозвонок от пользователя <${call?.from_fullname}> ...`}
+                    </Typography>
+                    <FontAwesomeIcon className="text-primary animate-bounce" icon={faPhone} size="2x" />
                 </DialogBody>
                 <DialogFooter>
                     <Button

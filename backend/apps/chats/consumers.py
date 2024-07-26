@@ -31,16 +31,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
         update_chat.delay(
-            group_name=self.group_name,
-            from_id=self.user.id,
-            is_active=True,
+            group_name=self.group_name, from_id=self.user.id, is_active=True
         )
 
-    async def disconnect(self):
+    async def disconnect(self, exit_code):
         update_chat.delay(
-            group_name=self.group_name,
-            from_id=self.user.id,
-            is_active=False,
+            group_name=self.group_name, from_id=self.user.id, is_active=False
         )
 
         await self.channel_layer.group_discard(self.group_name, self.channel_name)

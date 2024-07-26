@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@material-tailwind/react";
 import { useAuth } from '../hooks/auth';
@@ -22,22 +22,12 @@ export default function LoginPage() {
 
     let fromPage = location.state?.from?.pathname || '/';
 
-    useEffect(() => {
-        let username = localStorage.getItem('username');
-
-        if (username) {
-            setUsername(username);
-        }
-    }, [])
-
     function handleLogin(e) {
         e.preventDefault();
 
         api.ansarClient.login({ 'username': username, 'password': password })
             .then((resp) => {
                 login(resp.data.access, resp.data.refresh);
-
-                localStorage.setItem('username', username);
 
                 navigate(fromPage, { replace: true });
             })

@@ -17,6 +17,7 @@ import AlertError from "../UI/AlertError";
 import DialogEditMessage from "../UI/DialogEditMessage";
 import DialogDeleteMessage from "../UI/DialogDeleteMessage";
 import DialogCall from "../UI/DialogCall";
+import VideoChat from "../UI/VideoChat";
 
 export default function MainPage() {
   const { user } = useAuth();
@@ -59,20 +60,23 @@ export default function MainPage() {
 
   const [call, setCall] = useState(null);
 
+  const [pc, setPc] = useState(null);
+
+  const [remoteCount, setRemoteCount] = useState(1);
+
   const [openVideoChat, setOpenVideoChat] = useState(false);
+
+  const [audioMute, setAudioMute] = useState(false);
+
+  const [videoMute, setVideoMute] = useState(false);
+
+  const [localStream, setLocalStream] = useState(null);
 
   const messagesEndRef = useRef(null);
 
   const localVideoRef = useRef(null);
 
-  const remoteVideoRef = useRef(null);
-
   const constraints = { 'video': true, 'audio': true };
-
-  const configuration = { iceServers: [{ urls: 'stun:stun.example.org' }] };
-
-  const pc = new RTCPeerConnection(configuration);
-
 
   useEffect(() => {
     createWebSocket(ws);
@@ -98,8 +102,13 @@ export default function MainPage() {
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, chats, users]);
+    if (openVideoChat) setPc(new RTCPeerConnection());
+    // eslint-disable-next-line
+  }, [openVideoChat]);
+
+  useEffect(() => {
+    if (pc) startPeerConnection();
+  }, [pc])
 
   useEffect(() => {
     if (chats.length > 0) setCountChatMsg(calcChatCountMsg(chats));
@@ -112,14 +121,31 @@ export default function MainPage() {
   }, [users]);
 
   useEffect(() => {
-    if (openVideoChat) startPeerConnection();
-    // eslint-disable-next-line
-  }, [openVideoChat]);
+    scrollToBottom();
+  }, [messages, chats, users]);
+
+  useEffect(() => {
+    resizeVideoContainer();
+  }, [remoteCount]);
+
+  useEffect(() => {
+    if (localStream) {
+      let audioTracks = localStream.getAudioTracks();
+      audioTracks[0].enabled = !audioMute;
+    }
+  }, [audioMute]);
+
+  useEffect(() => {
+    if (localStream) {
+      let videoTracks = localStream.getVideoTracks();
+      videoTracks[0].enabled = !videoMute;
+    }
+  }, [videoMute]);
 
   function createWebSocket() {
     let accessToken = sessionStorage.getItem('access');
 
-    const ws = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat/?token=${accessToken}`);
+    const ws = new WebSocket(`${process.env.REACT_APP_WS_HOST}/ws/chat?token=${accessToken}`);
 
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
@@ -138,17 +164,14 @@ export default function MainPage() {
           break;
 
         case "offer":
-          console.log(`offer: ${data}`);
-          setChatOffer(data);
+          setChatOffer(data, ws);
           break;
 
         case "answer":
-          console.log(`answer: ${data}`);
           setChatAnswer(data);
           break;
 
         case "candidate":
-          console.log(`candidate: ${data}`);
           setChatCandidate(data);
           break;
 
@@ -173,6 +196,97 @@ export default function MainPage() {
     setWs(ws);
   }
 
+  function startPeerConnection() {
+    console.log('start startPeerConnection.');
+    pc.onicecandidate = (event) => {
+      console.log('event onicecandidate.');
+      if (event.candidate) {
+        ws.send(JSON.stringify({
+          "message": "send_candidate",
+          "message_type": call.message_type,
+          "to_id": call.to_id,
+          "desc": event.candidate,
+        }));
+        console.log('signal: send_candidate sended.');
+      };
+    }
+
+    if (call.from_id === user.id) {
+      console.log(`set event onnegotioationneeded.`);
+      pc.onnegotiationneeded = () => {
+        pc.createOffer()
+          .then(offer => {
+            console.log('offer created.');
+            pc.setLocalDescription(offer)
+              .then(() => {
+                console.log('local description setted.');
+                ws.send(JSON.stringify({
+                  "message": "send_offer",
+                  "message_type": call.message_type,
+                  "to_id": call.to_id,
+                  "desc": pc.localDescription,
+                }));
+                console.log('signal: send_offer sended.');
+              })
+          })
+      };
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'closed' || pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        if (pc.iceConnectionState !== 'closed')
+          pc.close();
+
+        removeRemoteVideo(call.to_id);
+      }
+    }
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then((stream) => {
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        localVideoRef.current.srcObject = stream;
+
+        setLocalStream(stream);
+      });
+
+    createRemoteVideo(call.to_id);
+  }
+
+  function createRemoteVideo(video_id) {
+    let remoteStream = new MediaStream();
+
+    let remoteVideoContainer = document.getElementById('video-container');
+
+    let video = document.createElement('video');
+    video.className = 'h-full w-full object-cover';
+    video.autoplay = true;
+    video.srcObject = remoteStream;
+
+    let videoWraper = document.createElement('div');
+    videoWraper.id = video_id;
+    videoWraper.className = 'h-full w-full grow';
+
+    remoteVideoContainer.appendChild(videoWraper);
+
+    videoWraper.appendChild(video);
+
+    setRemoteCount(remoteVideoContainer.childElementCount);
+
+    pc.ontrack = (event) => {
+      remoteStream.addTrack(event.track);
+    };
+  }
+
+  function removeRemoteVideo(video_id) {
+    let remoteVideoContainer = document.getElementById('video-container');
+
+    let videoWraper = document.getElementById(video_id);
+
+    remoteVideoContainer.removeChild(videoWraper);
+
+    setRemoteCount(remoteVideoContainer.childElementCount);
+  }
+
   function setChatCall(data) {
     setCall(data);
   };
@@ -183,76 +297,92 @@ export default function MainPage() {
 
   function setChatAccept(data) {
     if (data.message_type === "user" || data.from_id === user.id) {
+      setCall(data);
       setOpenVideoChat(true);
     }
   };
 
-  function setChatOffer(data) {
-    const pc = new RTCPeerConnection(configuration);
+  function resizeVideoContainer() {
+    let remoteVideoContainer = document.getElementById('video-container');
 
-    pc.addEventListener('onicecandidate', (event) => {
-      if (event.candidate) {
-        ws.send({
-          "message": "send_candidate",
-          "message_type": call.messsage_type,
-          "to_id": call.to_id,
-          "desc": event.candidate,
-        });
-      }
-    });
+    if (!remoteVideoContainer) return;
 
-    pc.addEventListener('onnegotiationneeded', () => {
-      pc.createOffer()
-        .then((offer) => {
-          pc.setLocalDescription(offer)
-            .then(() => {
-              ws.send({
-                "message": "send_offer",
-                "message_type": call.messsage_type,
-                "to_id": call.to_id,
-                "desc": pc.localDescription,
-              });
+    switch (remoteVideoContainer.childElementCount) {
+      case 1:
+      case 2:
+      case 3:
+        remoteVideoContainer.className = 'h-full w-full gap-1 flex flex-row';
+        break;
+      case 4:
+        remoteVideoContainer.className = 'h-full w-full gap-1 grid grid-cols-2 grid-rows-2';
+        break;
+      case 5:
+      case 6:
+        remoteVideoContainer.className = 'h-full w-full gap-1 grid grid-cols-3 grid-rows-2';
+        break;
+      case 7:
+      case 8:
+      case 9:
+        remoteVideoContainer.className = 'h-full w-full gap-1 grid grid-cols-3 grid-rows-3';
+        break;
+      case 10:
+      case 11:
+      case 12:
+      case 13:
+      case 14:
+      case 15:
+        remoteVideoContainer.className = 'h-full w-full gap-1 grid grid-cols-5 grid-rows-3';
+        break;
+      default:
+        remoteVideoContainer.className = 'h-full w-full gap-1 grid grid-cols-6 grid-rows-3 overflow-hidden';
+    };
+  }
+
+  function setChatOffer(data, ws) {
+    if (!pc) return;
+    if (data.from_id !== user.id) {
+      console.log(`setChatOffer ${data}`);
+      pc.setRemoteDescription(data.desc)
+        .then(() => {
+          console.log('remote description setted.')
+          pc.createAnswer()
+            .then(answer => {
+              console.log('answer created.')
+              pc.setLocalDescription(answer)
+                .then(() => {
+                  console.log('local description setted.')
+                  ws.send(JSON.stringify({
+                    "message": "send_answer",
+                    "message_type": data.message_type,
+                    "to_id": data.to_id,
+                    "desc": pc.localDescription,
+                  }));
+                  console.log('signal: send_answer sended.');
+                })
             })
-            .catch(e => setError("Error setting local description: " + e.message));
         })
-        .catch(e => setError("Error creating offer: " + e.message));
-    });
-
-    pc.setRemoteDescription(data.desc)
-      .then(() => {
-        let stream = new MediaStream();
-
-        stream.getTracks().forEach((track) =>
-          pc.addTrack(track, stream));
-
-        remoteVideoRef.current.srcObject = stream;
-
-        pc.createAnswer()
-          .then(answer => {
-            pc.setLocalDescription(answer)
-              .then(() => {
-                ws.send({
-                  "message": "send_answer",
-                  "message_type": data.messsage_type,
-                  "to_id": data.to_id,
-                  "desc": pc.localDescription,
-                });
-              })
-          })
-          .catch(e => setError("Error creating answer: " + e.message));
-      })
-      .catch(e => setError("Error setting remote description: " + e.message));
+    }
   };
 
   function setChatAnswer(data) {
-    pc.setRemoteDescription(data.desc)
-      .catch(e => setError("Error setting answer: " + e.message));
+    if (!pc) return;
+    if (data.from_id !== user.id) {
+      if (!pc.remoteDescription) {
+        console.log(`setChatAnswer ${data}`);
+        pc.setRemoteDescription(data.desc)
+          .then(() => console.log('remote description setted.'))
+          .catch(e => console.log(e.message));
+      }
+    }
   };
 
   function setChatCandidate(data) {
-    pc.addIceCandidate(data.desc)
-      .catch(e => setError("Error setting candidate: " + e.message));
-  };
+    if (!pc) return;
+    if (pc.remoteDescription) {
+      console.log(`setChatCandidate ${data}`);
+      pc.addIceCandidate(data.desc);
+    }
+  }
 
   function setChatChange(data) {
     setUsers(prev => {
@@ -363,48 +493,11 @@ export default function MainPage() {
     }
   };
 
-  function startPeerConnection() {
-    pc.addEventListener('onicecandidate', (event) => {
-      if (event.candidate) {
-        ws.send({
-          "message": "send_candidate",
-          "message_type": call.messsage_type,
-          "to_id": call.to_id,
-          "desc": event.candidate,
-        });
-      }
-    });
-
-    pc.addEventListener('onnegotiationneeded', () => {
-      pc.createOffer()
-        .then((offer) => {
-          pc.setLocalDescription(offer)
-            .then(() => {
-              ws.send({
-                "message": "send_offer",
-                "message_type": call.messsage_type,
-                "to_id": call.to_id,
-                "desc": pc.localDescription,
-              });
-            })
-            .catch(e => setError("Error setting local description: " + e.message));
-        })
-        .catch(e => setError("Error creating offer: " + e.message));
-    });
-
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-        stream.getTracks().forEach(track => pc.addTrack(track));
-        localVideoRef.current.srcObject = stream;
-      })
-      .catch(e => setError("Error accessing media devices: " + e.message));
-  }
-
-  const scrollToBottom = () => {
+  function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const calcUserCountMsg = (users) => {
+  function calcUserCountMsg(users) {
     let result = {};
 
     let total = 0;
@@ -432,7 +525,7 @@ export default function MainPage() {
     return result;
   };
 
-  const calcChatCountMsg = (chats) => {
+  function calcChatCountMsg(chats) {
     let result = {};
 
     let total = 0;
@@ -471,7 +564,7 @@ export default function MainPage() {
 
     unread_messages.forEach(msg => {
       ws.send(JSON.stringify({
-        message: "read_message",
+        message: "send_read",
         message_type: messageType,
         message_id: msg.id,
       }));
@@ -493,7 +586,7 @@ export default function MainPage() {
       ));
 
     ws.send(JSON.stringify({
-      message: "send_message",
+      message: "send_new",
       message_type: messageType,
       to_id: selectItem.id,
       text: text,
@@ -541,7 +634,7 @@ export default function MainPage() {
           const response = await api.ansarClient.upload_file(formData);
 
           ws.send(JSON.stringify({
-            message: "send_message",
+            message: "send_new",
             message_type: messageType,
             to_id: selectItem.id,
             text: null,
@@ -565,11 +658,19 @@ export default function MainPage() {
   }
 
   function handleCallVideoChat() {
-    ws.send(JSON.stringify({
-      message: "send_call",
-      message_type: messageType,
-      to_id: selectItem.id,
-    }));
+    if (messageType === "user") {
+      ws.send(JSON.stringify({
+        message: "send_call",
+        message_type: messageType,
+        to_id: selectItem.id,
+      }));
+    } else {
+      ws.send(JSON.stringify({
+        message: "send_accept",
+        message_type: messageType,
+        to_id: selectItem.id,
+      }));
+    }
   }
 
   function handleCancelCallVideoChat() {
@@ -624,7 +725,7 @@ export default function MainPage() {
 
   function handleEditMessage() {
     ws.send(JSON.stringify({
-      message: "edit_message",
+      message: "send_edit",
       message_type: messageType,
       message_id: editItem,
       text: editText,
@@ -643,7 +744,7 @@ export default function MainPage() {
 
   function handleDeleteMessage() {
     ws.send(JSON.stringify({
-      message: "delete_message",
+      message: "send_delete",
       message_type: messageType,
       message_id: deleteItem,
     }));
@@ -651,22 +752,32 @@ export default function MainPage() {
     setDeleteItem(null);
   }
 
+  function handleDisconnetVideoChat() {
+    if (!pc) return;
+    pc.close();
+    let remoteVideoContainer = document.getElementById('video-container');
+    remoteVideoContainer.textContent = '';
+    setCall(null);
+    setOpenVideoChat(false);
+    setSelectItem(null);
+  }
+
+  function handleRestartConnect() {
+    pc.setConfiguration(null);
+  }
+
   return (
     <div>
       {openVideoChat
-        ? <div className="h-screen w-full bg-black">
-          Video Chat
-          <div className="flex flex-row justify-between">
-            <video
-              className="grow"
-              ref={localVideoRef} autoPlay
-            />
-            <video
-              className="grow"
-              ref={remoteVideoRef} autoPlay
-            />
-          </div>
-        </div>
+        ? <VideoChat
+          localVideoRef={localVideoRef}
+          handleDisconnetVideoChat={handleDisconnetVideoChat}
+          audioMute={audioMute}
+          setAudioMute={setAudioMute}
+          videoMute={videoMute}
+          setVideoMute={setVideoMute}
+          handleRestartConnect={handleRestartConnect}
+        />
         : <div className="h-[calc(100vh-6rem)]">
           <div className="absolute opacity-55 w-full flex flex-col gap-1">
             {sends && sends.map(send => (
@@ -717,7 +828,6 @@ export default function MainPage() {
               selectItem={selectItem}
               messagesEndRef={messagesEndRef}
               onEditorStateChange={onEditorStateChange}
-              messageType={messageType}
             />
           </div>
         </div>}
